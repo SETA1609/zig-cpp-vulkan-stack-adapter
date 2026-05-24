@@ -29,6 +29,7 @@ zVoxRealms ([`docs/external-libs-catalog.md` § 3 Vulkan-stack](https://github.c
 4. **Reduces engine top-level deps from four entries to one.** Engine's `build.zig.zon` lists this adapter; the four bundled libs are internal
 5. **Provides a single `createBuffer` / `compileShader` / `loadVulkan` entry point per concern.** Idiomatic Zig types throughout — no manual sType-chaining for VMA buffer creation, no FFI ceremony for shader compilation
 6. **Tree-shakes per export target.** Builds for Linux exclude Windows/Apple/Android stubs; verifiable with `nm libzvox-runtime.so`
+7. **Provides cross-platform surface creation without any cross-adapter dependency.** Exposes `createX11Surface` / `createWaylandSurface` / `createWin32Surface` / `createAndroidSurface` — each takes only raw OS primitives (pointers + integers), no shared types imported from any windowing adapter. Each calls the matching `vkCreate*SurfaceKHR` from its `VK_KHR_*_surface` extension. Engine pairs these with the matching per-OS getter from [`zig-cpp-platform-stack-adapter`](https://github.com/SETA1609/zig-cpp-platform-stack-adapter) in a small `src/render/surface.zig` helper. Pattern matches Vulkan's own design (Vulkan has no unified "native surface" extension — every platform gets its own)
 
 Full design rationale: [`docs/external-libs-catalog.md` § Note on the Vulkan-stack meta-package](https://github.com/SETA1609/zigVoxelWorlds/blob/main/docs/external-libs-catalog.md).
 
