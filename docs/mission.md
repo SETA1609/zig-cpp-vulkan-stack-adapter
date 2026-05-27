@@ -1,16 +1,16 @@
 # Mission — zig-cpp-vulkan-stack-adapter
 
-> The concrete commitments behind the [vision](vision.md). Full rationale: [zVoxRealms `external-libs-catalog.md` § Note on the Vulkan-stack meta-package](https://github.com/SETA1609/zigVoxelWorlds/blob/main/docs/external-libs-catalog.md).
+> The concrete commitments behind the [vision](vision.md).
 
 ## What we will build
 
 1. **Re-export vulkan-zig as-is** — `pub const vk = @import("vulkan")`. Typed enums, error sets, comptime dispatch tables. No C-ABI tax.
 
-2. **Wrap the C++ libs behind `noexcept` `extern "C"` bridges, surfaced as idiomatic Zig** — `vk_stack.vma.createBuffer(...)`, `vk_stack.shaderc.compile(...)`. Every boundary function catches all exceptions before they cross the C ABI ([`cpp-style.md`](https://github.com/SETA1609/zigVoxelWorlds/blob/main/docs/cpp-style.md)).
+2. **Wrap the C++ libs behind `noexcept` `extern "C"` bridges, surfaced as idiomatic Zig** — `vk_stack.vma.createBuffer(...)`, `vk_stack.shaderc.compile(...)`. Every boundary function catches all exceptions before they cross the C ABI.
 
-3. **volk loader** (`vk_stack.volk`) — pending the v0.2.0 review of whether vulkan-zig's own generated dispatch makes it redundant (see [`ROADMAP.md`](ROADMAP.md) note).
+3. **volk loader** (`vk_stack.volk`) — pending the v0.2.0 review of whether vulkan-zig's own generated dispatch makes it redundant (see [`ROADMAP.md`](ROADMAP.md)).
 
-4. **Per-OS surface creators** — `createX11Surface`/`createWaylandSurface`/`createWin32Surface`/`createAndroidSurface`, each taking raw OS primitives, **no import from the platform adapter**.
+4. **Per-OS surface creators** — `createX11Surface`/`createWaylandSurface`/`createWin32Surface`/`createAndroidSurface`, each taking raw OS primitives, **no windowing-library import**.
 
 5. **Atomic version coherence** — one `build.zig.zon` pins all four bundled libs; a bump moves them together so signatures never drift.
 
@@ -24,4 +24,4 @@
 
 ## Non-goals
 
-Windowing (sibling adapter) · the frame graph / material system (engine `src/render/`) · SPIR-V reflection (engine-side `@cImport`) · Metal/D3D transpilation (deferred, SPIRV-Cross post-v1.0).
+Windowing (companion adapter) · the frame graph / material system (consumer code) · SPIR-V reflection (consumer-side `@cImport`) · Metal/D3D transpilation (deferred, SPIRV-Cross later).
