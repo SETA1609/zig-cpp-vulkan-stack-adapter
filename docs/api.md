@@ -6,7 +6,11 @@
 > const vk_stack = @import("vulkan_stack");
 > ```
 >
-> **Note on shapes:** the `vk` re-export and the surface-creator signatures are fixed. The `vma` and `shaderc` wrapper *ergonomics* below are **suggestions** — refine them to taste when you implement the bridges. Every `extern "C"` bridge stays `noexcept`.
+> **Note on shapes:** the `vk` re-export and the surface-creator signatures are fixed. The `vma` and `shaderc` wrapper *ergonomics* below are **suggestions** — refine them to taste when you implement the bridges. Every `extern "C"` bridge stays `noexcept` — but it is an *internal* boundary; the public Zig surface here uses the **Zig calling convention** throughout (no `callconv(.c)`, no C-style out-params).
+>
+> **Now authored:** this surface lives as code in [`../src/root.zig`](../src/root.zig) (`vk` re-export + surface creators) with [`../src/volk.zig`](../src/volk.zig), [`../src/vma.zig`](../src/vma.zig), [`../src/shaderc.zig`](../src/shaderc.zig). The `vk` re-export is **real** (generated from `vk.xml`); the rest are `@panic("not implemented")` stubs. Numeric values for this library's own enums are in [`enum-values.md`](enum-values.md).
+>
+> **Note for the future — error sets.** `shaderc.compile` already exposes an explicit named error set (`shaderc.Error`); the surface creators and `vma.*` use *inferred* sets (`!T`) for now. The library-grade goal is explicit named sets per area (e.g. `SurfaceError!vk.SurfaceKHR`, `VmaError!*Allocator`) so the error contract is documented and exhaustively `switch`-able. **Counter-argument (why not yet):** the bridges aren't written, so the real failure taxonomy isn't known and a premature set would churn — keep inferred while the VMA/surface code is built, then **lock explicit named sets at v1.0**. Revisit at the 1.0 stabilization pass.
 
 ## Module root
 

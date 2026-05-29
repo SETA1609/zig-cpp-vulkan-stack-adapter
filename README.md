@@ -4,6 +4,14 @@ A standalone **Zig library** that bundles the Vulkan stack — [vulkan-zig](http
 
 **License:** [MIT](LICENSE) · **Requires:** Zig 0.16+ · **Status:** pre-1.0, single-maintainer
 
+> **Status detail:** `build.zig` exposes the `vulkan_stack` module + static-lib
+> artifact and wires vulkan-zig's `vk.xml` codegen, so the **`vk` re-export is
+> real** (`@import("vulkan_stack").vk` gives the full typed API today). `volk`,
+> `vma`, `shaderc`, and the surface creators are authored, documented
+> `@panic("not implemented")` stubs in `src/` awaiting their milestones (see
+> [`docs/ROADMAP.md`](docs/ROADMAP.md)). `zig build` produces the lib;
+> `zig build test` type-checks the surface and resolves the generated `vk`.
+
 ---
 
 ## Documentation
@@ -11,6 +19,7 @@ A standalone **Zig library** that bundles the Vulkan stack — [vulkan-zig](http
 - [`docs/vision.md`](docs/vision.md) — what this library is for; the version-coherence guarantee
 - [`docs/mission.md`](docs/mission.md) — concrete commitments (vk re-export, VMA/shaderc bridges, surface creators)
 - [`docs/api.md`](docs/api.md) — intended public API surface (signatures + semantics)
+- [`docs/enum-values.md`](docs/enum-values.md) — stable enum name→value maps (for serialization)
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — versioned milestones (v0.1.0 → v1.0.0)
 - [`docs/sprint.md`](docs/sprint.md) — current milestone plan
 - [`docs/validation-apps.md`](docs/validation-apps.md) — standalone test apps + completion checklist
@@ -51,8 +60,8 @@ const vk      = vk_stack.vk;        // re-exported vulkan-zig — full typed API
 const vma     = vk_stack.vma;       // typed Zig wrapper over VMA
 const shaderc = vk_stack.shaderc;   // GLSL→SPIR-V
 
-const buf = try vma.createBuffer(allocator, &buf_info, &alloc_info);
-const spv = try shaderc.compile(allocator, source, .vertex);
+const buf = try vma.createBuffer(allocator, &buf_info, .gpu_only);
+const spv = try shaderc.compile(gpa, source, .vertex, .{});
 ```
 
 ## Surface creation — standalone, no windowing dependency
