@@ -30,7 +30,7 @@ jobs:
 
       # Formatting gate (run before build so no generated dirs are scanned).
       - name: Format check
-        run: zig fmt --check build.zig build.zig.zon src
+        run: zig fmt --check build.zig build.zig.zon src demo
 
       # Build the static library (generates vk bindings from vk.xml).
       - name: Build
