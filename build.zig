@@ -91,4 +91,25 @@ pub fn build(b: *std.Build) void {
     const run_tests = b.addRunArtifact(tests);
     b.step("test", "Run the vulkan_stack unit tests")
         .dependOn(&run_tests.step);
+
+    // --- `zig build test-tdd` -----------------------------------------------
+    // Ordered red→green TDD suite (src/tests/tdd/). Every test calls a real
+    // function and asserts its result, but is gated behind a per-function
+    // `done` flag so it SKIPS until implemented — so this step is green (all
+    // skipped) today and a contributor flips one flag, makes that function
+    // pass, and PRs it (see CONTRIBUTING.md). Kept off CI's `test` step. Scope
+    // is shaderc only — the GPU/instance/surface functions are e2e (see
+    // docs/manual-testing.md). Focus with `-- --test-filter <name>`.
+    const tdd_mod = b.createModule(.{
+        .root_source_file = b.path("src/tests/tdd/main.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    tdd_mod.addImport("vulkan_stack", vulkan_stack_mod);
+    tdd_mod.addImport("vulkan", vk_mod);
+    const tdd_tests = b.addTest(.{ .root_module = tdd_mod });
+    const run_tdd_tests = b.addRunArtifact(tdd_tests);
+    b.step("test-tdd", "Run the red→green TDD suite (fails until the backends are implemented)")
+        .dependOn(&run_tdd_tests.step);
 }
