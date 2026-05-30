@@ -1,0 +1,7 @@
+# Force LF line endings for all text files, in the working tree on every OS.
+#
+# Without this, GitHub's Windows CI runner (git core.autocrlf=true by default)
+# checks our LF-stored files out as CRLF, and `zig fmt --check` — which requires
+# LF — then fails on every file. Pinning eol=lf keeps the Windows checkout LF so
+# the format gate (and clang-format, once C/C++ lands) passes cross-platform.
+* text=auto eol=lf
