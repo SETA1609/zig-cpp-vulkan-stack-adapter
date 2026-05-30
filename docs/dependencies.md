@@ -26,7 +26,7 @@ No GPL/LGPL dependencies.
 - **VMA genuinely forces C++.** It's header-only C++ with no C entry point, so `@cImport` can't process it; you must compile a C++ translation unit (`VMA_IMPLEMENTATION`) and expose a C-clean header. This is the irreducible C++ in the repo.
 - **shaderc does *not* force C++.** It ships a C API (`shaderc/shaderc.h`), so you can `@cImport` it directly, link the compiled `libshaderc`, and write the wrapper in **Zig** — **no shaderc C++ bridge needed.** Doing that pushes the split toward **Zig ~82% / C++ ~18%** (just the VMA bridge). Here the `-cpp-` in the repo name is earned.
 
-Every `extern "C"` bridge function is `noexcept` and catches before crossing the C ABI (see [`.github/CONTRIBUTING.md`](../.github/CONTRIBUTING.md)).
+Every `extern "C"` bridge function is `noexcept` and catches before crossing the C ABI (see [`CONTRIBUTING.md`](../CONTRIBUTING.md)).
 
 ## "Written" vs. "compiled"
 

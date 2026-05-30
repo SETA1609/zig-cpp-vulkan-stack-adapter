@@ -41,7 +41,7 @@ vulkan-zig generates its own dispatch wrappers from `vk.xml`, which overlaps vol
 
 ## C++ boundary discipline
 
-Every `extern "C"` bridge function (VMA, shaderc) is `noexcept` and catches all exceptions before they cross the C ABI. See [`.github/CONTRIBUTING.md`](../.github/CONTRIBUTING.md).
+Every `extern "C"` bridge function (VMA, shaderc) is `noexcept` and catches all exceptions before they cross the C ABI. See [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 ## See also
 

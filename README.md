@@ -25,8 +25,8 @@ A standalone **Zig library** that bundles the Vulkan stack — [vulkan-zig](http
 - [`docs/validation-apps.md`](docs/validation-apps.md) — standalone test apps + completion checklist
 - [`docs/dependencies.md`](docs/dependencies.md) — consumed libraries + Zig/C/C++ language split
 - [`docs/cheat_sheet.md`](docs/cheat_sheet.md) — Zig/C/C++ cross-language field guide
-- [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md) — how to contribute
-- [`.github/SECURITY.md`](.github/SECURITY.md) — security policy
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to contribute
+- [`SECURITY.md`](SECURITY.md) — security policy
 
 ## What it is
 
@@ -83,4 +83,4 @@ So this library works with **any** window source — the companion platform adap
 
 ## C++ boundary discipline
 
-Every `extern "C"` bridge function (VMA, shaderc) is `noexcept` and catches all exceptions before they cross the C ABI. See [`.github/CONTRIBUTING.md`](.github/CONTRIBUTING.md).
+Every `extern "C"` bridge function (VMA, shaderc) is `noexcept` and catches all exceptions before they cross the C ABI. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
