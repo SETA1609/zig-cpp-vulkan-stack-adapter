@@ -48,9 +48,18 @@ pub const shaderc = @import("shaderc.zig");
 // decoupling is the whole point (the platform adapter's native-handle getters
 // produce exactly these primitives).
 
+/// Errors any `create*Surface` can return. Maps the relevant `VkResult`s from
+/// `vkCreate*SurfaceKHR`; a missing platform surface extension on the instance
+/// surfaces as `SurfaceCreationFailed`.
+pub const SurfaceError = error{
+    OutOfHostMemory,
+    OutOfDeviceMemory,
+    SurfaceCreationFailed,
+};
+
 /// Create a surface for an **X11** window. `display` is the `Display*`,
 /// `window` the X11 `Window` XID. *(since v0.2.0)*
-pub fn createX11Surface(instance: vk.Instance, display: *anyopaque, window: u64) !vk.SurfaceKHR {
+pub fn createX11Surface(instance: vk.Instance, display: *anyopaque, window: u64) SurfaceError!vk.SurfaceKHR {
     _ = instance;
     _ = display;
     _ = window;
@@ -59,7 +68,7 @@ pub fn createX11Surface(instance: vk.Instance, display: *anyopaque, window: u64)
 
 /// Create a surface for a **Win32** window. `hinstance` is the module
 /// `HINSTANCE`, `hwnd` the window `HWND`. *(since v0.2.0)*
-pub fn createWin32Surface(instance: vk.Instance, hinstance: *anyopaque, hwnd: *anyopaque) !vk.SurfaceKHR {
+pub fn createWin32Surface(instance: vk.Instance, hinstance: *anyopaque, hwnd: *anyopaque) SurfaceError!vk.SurfaceKHR {
     _ = instance;
     _ = hinstance;
     _ = hwnd;
@@ -68,7 +77,7 @@ pub fn createWin32Surface(instance: vk.Instance, hinstance: *anyopaque, hwnd: *a
 
 /// Create a surface for a **Wayland** surface. `display` is the
 /// `wl_display*`, `surface` the `wl_surface*`. *(since v0.5.0)*
-pub fn createWaylandSurface(instance: vk.Instance, display: *anyopaque, surface: *anyopaque) !vk.SurfaceKHR {
+pub fn createWaylandSurface(instance: vk.Instance, display: *anyopaque, surface: *anyopaque) SurfaceError!vk.SurfaceKHR {
     _ = instance;
     _ = display;
     _ = surface;
@@ -77,7 +86,7 @@ pub fn createWaylandSurface(instance: vk.Instance, display: *anyopaque, surface:
 
 /// Create a surface for an **Android** native window (`ANativeWindow*`).
 /// *(since v0.5.0)*
-pub fn createAndroidSurface(instance: vk.Instance, window: *anyopaque) !vk.SurfaceKHR {
+pub fn createAndroidSurface(instance: vk.Instance, window: *anyopaque) SurfaceError!vk.SurfaceKHR {
     _ = instance;
     _ = window;
     @panic("not implemented");

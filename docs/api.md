@@ -29,9 +29,10 @@ Re-exported from [vulkan-zig](https://github.com/Snektron/vulkan-zig) **unchange
 ## Loader  *(since v0.2.0)*
 
 ```zig
-pub fn loadBase(get_instance_proc_addr: vk.PfnGetInstanceProcAddr) void;  // bootstrap
-pub fn loadInstance(instance: vk.Instance) void;                          // instance-level fns
-pub fn loadDevice(device: vk.Device) void;                                // device-level fns
+pub const LoaderError = error{ VulkanLibraryNotFound };
+pub fn loadBase() LoaderError!void;                // dlopen libvulkan + base fns
+pub fn loadInstance(instance: vk.Instance) void;   // instance-level fns
+pub fn loadDevice(device: vk.Device) void;         // device-level fns
 ```
 
 > If vulkan-zig's own dispatch wrappers cover your needs, volk may be dropped — see the [ROADMAP](ROADMAP.md) note.
@@ -41,10 +42,11 @@ pub fn loadDevice(device: vk.Device) void;                                // dev
 Each takes **raw OS primitives** (from any windowing layer) and returns a surface — no windowing import.
 
 ```zig
-pub fn createX11Surface(instance: vk.Instance, display: *anyopaque, window: u64) !vk.SurfaceKHR;
-pub fn createWin32Surface(instance: vk.Instance, hinstance: *anyopaque, hwnd: *anyopaque) !vk.SurfaceKHR;
-pub fn createWaylandSurface(instance: vk.Instance, display: *anyopaque, surface: *anyopaque) !vk.SurfaceKHR;  // since v0.5.0
-pub fn createAndroidSurface(instance: vk.Instance, window: *anyopaque) !vk.SurfaceKHR;                         // since v0.5.0
+pub const SurfaceError = error{ OutOfHostMemory, OutOfDeviceMemory, SurfaceCreationFailed };
+pub fn createX11Surface(instance: vk.Instance, display: *anyopaque, window: u64) SurfaceError!vk.SurfaceKHR;
+pub fn createWin32Surface(instance: vk.Instance, hinstance: *anyopaque, hwnd: *anyopaque) SurfaceError!vk.SurfaceKHR;
+pub fn createWaylandSurface(instance: vk.Instance, display: *anyopaque, surface: *anyopaque) SurfaceError!vk.SurfaceKHR;  // since v0.5.0
+pub fn createAndroidSurface(instance: vk.Instance, window: *anyopaque) SurfaceError!vk.SurfaceKHR;                         // since v0.5.0
 ```
 
 ## `vma` — GPU memory allocator  *(since v0.3.0)*
@@ -54,6 +56,7 @@ Idiomatic Zig over VMA's C++ (through a `noexcept` C bridge). *Shapes are sugges
 ```zig
 pub const Allocator = opaque {};
 pub const Allocation = opaque {};
+pub const Error = error{ AllocatorCreationFailed, OutOfHostMemory, OutOfDeviceMemory, MappingFailed };
 
 pub const AllocatorCreateInfo = struct {
     physical_device: vk.PhysicalDevice,
@@ -61,20 +64,20 @@ pub const AllocatorCreateInfo = struct {
     instance: vk.Instance,
     api_version: u32 = vk.API_VERSION_1_3,
 };
-pub fn createAllocator(info: AllocatorCreateInfo) !*Allocator;
+pub fn createAllocator(info: AllocatorCreateInfo) Error!*Allocator;
 pub fn destroyAllocator(a: *Allocator) void;
 
 pub const Usage = enum { auto, gpu_only, cpu_to_gpu, gpu_to_cpu };
 
 pub const BufferResult = struct { buffer: vk.Buffer, allocation: *Allocation };
-pub fn createBuffer(a: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage) !BufferResult;
+pub fn createBuffer(a: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage) Error!BufferResult;
 pub fn destroyBuffer(a: *Allocator, buffer: vk.Buffer, allocation: *Allocation) void;
 
 pub const ImageResult = struct { image: vk.Image, allocation: *Allocation };
-pub fn createImage(a: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage) !ImageResult;
+pub fn createImage(a: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage) Error!ImageResult;
 pub fn destroyImage(a: *Allocator, image: vk.Image, allocation: *Allocation) void;
 
-pub fn mapMemory(a: *Allocator, allocation: *Allocation) ![*]u8;
+pub fn mapMemory(a: *Allocator, allocation: *Allocation) Error![*]u8;
 pub fn unmapMemory(a: *Allocator, allocation: *Allocation) void;
 ```
 
