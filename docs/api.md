@@ -30,9 +30,10 @@ Re-exported from [vulkan-zig](https://github.com/Snektron/vulkan-zig) **unchange
 
 ```zig
 pub const LoaderError = error{ VulkanLibraryNotFound };
-pub fn loadBase() LoaderError!void;                // dlopen libvulkan + base fns
-pub fn loadInstance(instance: vk.Instance) void;   // instance-level fns
-pub fn loadDevice(device: vk.Device) void;         // device-level fns
+pub fn loadBase() LoaderError!void;                       // dlopen libvulkan + base fns
+pub fn getInstanceProcAddr() vk.PfnGetInstanceProcAddr;   // bridge to vk.BaseWrapper.load
+pub fn loadInstance(instance: vk.Instance) void;          // instance-level fns
+pub fn loadDevice(device: vk.Device) void;                // device-level fns
 ```
 
 > If vulkan-zig's own dispatch wrappers cover your needs, volk may be dropped — see the [ROADMAP](ROADMAP.md) note.

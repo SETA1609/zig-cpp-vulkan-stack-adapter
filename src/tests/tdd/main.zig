@@ -9,4 +9,6 @@
 
 test {
     _ = @import("01_shaderc_test.zig");
+    _ = @import("02_volk_test.zig");
+    _ = @import("03_vma_test.zig");
 }
