@@ -32,8 +32,21 @@ pub const AllocatorCreateInfo = struct {
     api_version: u32 = @bitCast(vk.API_VERSION_1_3),
 };
 
+/// Errors the fallible VMA calls can return. Maps the relevant `VkResult`s
+/// from the VMA bridge.
+pub const Error = error{
+    /// `vmaCreateAllocator` failed (bad device/instance, or out of memory).
+    AllocatorCreationFailed,
+    /// Host memory exhausted creating the resource or its allocation.
+    OutOfHostMemory,
+    /// Device memory exhausted backing the buffer/image.
+    OutOfDeviceMemory,
+    /// `mapMemory` on non-host-visible memory (e.g. `.gpu_only`), or a map failure.
+    MappingFailed,
+};
+
 /// Create a VMA allocator. Caller owns it — release with `destroyAllocator`.
-pub fn createAllocator(info: AllocatorCreateInfo) !*Allocator {
+pub fn createAllocator(info: AllocatorCreateInfo) Error!*Allocator {
     _ = info;
     @panic("not implemented");
 }
@@ -68,7 +81,7 @@ pub const BufferResult = struct {
 
 /// Allocate memory and create a `vk.Buffer` in one call. `info` is a standard
 /// `VkBufferCreateInfo`; `usage` selects the memory type. *(since v0.3.0)*
-pub fn createBuffer(allocator: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage) !BufferResult {
+pub fn createBuffer(allocator: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage) Error!BufferResult {
     _ = allocator;
     _ = info;
     _ = usage;
@@ -92,7 +105,7 @@ pub const ImageResult = struct {
 };
 
 /// Allocate memory and create a `vk.Image` in one call. *(since v0.3.0)*
-pub fn createImage(allocator: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage) !ImageResult {
+pub fn createImage(allocator: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage) Error!ImageResult {
     _ = allocator;
     _ = info;
     _ = usage;
@@ -109,7 +122,7 @@ pub fn destroyImage(allocator: *Allocator, image: vk.Image, allocation: *Allocat
 
 /// Map a host-visible allocation and return a pointer to its bytes. Pair with
 /// `unmapMemory`. Mapping `gpu_only` memory fails. *(since v0.3.0)*
-pub fn mapMemory(allocator: *Allocator, allocation: *Allocation) ![*]u8 {
+pub fn mapMemory(allocator: *Allocator, allocation: *Allocation) Error![*]u8 {
     _ = allocator;
     _ = allocation;
     @panic("not implemented");

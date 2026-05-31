@@ -70,7 +70,7 @@ means *the function pointers resolve and the calls they enable succeed*.
 
 | API | Procedure | Pass criterion |
 | --- | --- | --- |
-| `loadBase` | Call `loadBase(vkGetInstanceProcAddr)` at startup, then `vkEnumerateInstanceVersion` / `vkCreateInstance` via the base table. | Base entry points are non-null; `vkCreateInstance` succeeds. A crash/null here means base loading failed. |
+| `loadBase` | Call `loadBase()` at startup (it `dlopen`s libvulkan), then `vkEnumerateInstanceVersion` / `vkCreateInstance` via the base table. | Base entry points are non-null; `vkCreateInstance` succeeds. `error.VulkanLibraryNotFound` means no loader is installed. |
 | `loadInstance` | After `vkCreateInstance`, call `loadInstance(instance)`, then an instance-level call (e.g. `vkEnumeratePhysicalDevices`). | Instance entry points resolve; enumeration returns ≥1 physical device. |
 | `loadDevice` | After `vkCreateDevice`, call `loadDevice(device)`, then a device-level call (e.g. `vkGetDeviceQueue`, `vkCreateFence`). | Device entry points resolve and bypass the instance dispatch indirection; the device call succeeds. |
 
