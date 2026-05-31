@@ -10,10 +10,17 @@
 
 const vk = @import("vulkan");
 
-/// Bootstrap the loader with the platform's `vkGetInstanceProcAddr`. Call
-/// once before creating an instance. *(since v0.2.0)*
-pub fn loadBase(get_instance_proc_addr: vk.PfnGetInstanceProcAddr) void {
-    _ = get_instance_proc_addr;
+/// Errors `loadBase` can return.
+pub const LoaderError = error{
+    /// No Vulkan loader (`libvulkan`) could be found / opened at runtime.
+    VulkanLibraryNotFound,
+};
+
+/// Bootstrap the loader: dynamically open the platform's Vulkan library
+/// (`volkInitialize`) and load the base (no-instance) entry points. Call once
+/// before creating an instance. Fails if no `libvulkan` is present — the binary
+/// does **not** hard-link the loader. *(since v0.2.0)*
+pub fn loadBase() LoaderError!void {
     @panic("not implemented");
 }
 
