@@ -24,6 +24,14 @@ pub fn loadBase() LoaderError!void {
     @panic("not implemented");
 }
 
+/// The bootstrap `vkGetInstanceProcAddr` resolved by `loadBase`. Feed it to
+/// vulkan-zig's `vk.BaseWrapper.load` / `vk.InstanceWrapper.load` to build the
+/// typed dispatch — this is the bridge between volk's dynamic loading and
+/// vulkan-zig's wrappers. Valid only after a successful `loadBase`. *(since v0.2.0)*
+pub fn getInstanceProcAddr() vk.PfnGetInstanceProcAddr {
+    @panic("not implemented");
+}
+
 /// Load instance-level function pointers for `instance`. Call after
 /// `vkCreateInstance`. *(since v0.2.0)*
 pub fn loadInstance(instance: vk.Instance) void {
