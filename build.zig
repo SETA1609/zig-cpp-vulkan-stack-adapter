@@ -71,6 +71,26 @@ pub fn build(b: *std.Build) void {
     });
     vulkan_stack_mod.linkLibrary(vma_bridge_lib);
 
+    // --- shaderc (optional, lazy) -------------------------------------------
+    // GLSL→SPIR-V via tiawl/shaderc.zig, which builds shaderc + glslang +
+    // SPIRV-Tools from source (no system SDK, cross-compiles). OFF by default so
+    // consumers who embed precompiled SPIR-V don't pay the glslang build; enable
+    // with `-Dshaderc`. See docs/shaderc-distribution.md.
+    const enable_shaderc = b.option(bool, "shaderc", "Build runtime GLSL→SPIR-V (fetches + builds shaderc from source)") orelse false;
+    var have_shaderc = false;
+    if (enable_shaderc) {
+        if (b.lazyDependency("shaderc_zig", .{ .target = target, .optimize = optimize })) |shaderc_dep| {
+            vulkan_stack_mod.linkLibrary(shaderc_dep.artifact("shaderc"));
+            vulkan_stack_mod.link_libcpp = true; // glslang / SPIRV-Tools are C++
+            have_shaderc = true;
+        }
+    }
+    // Expose `have_shaderc` to the source (shaderc.zig) and the TDD suite (to
+    // gate the shaderc tests) via an importable `build_config`.
+    const build_config = b.addOptions();
+    build_config.addOption(bool, "have_shaderc", have_shaderc);
+    vulkan_stack_mod.addOptions("build_config", build_config);
+
     // --- Static-library artifact --------------------------------------------
     // Downstream `linkLibrary` on this pulls in the compiled Zig glue and
     // (later) volk/VMA/shaderc. Today it is a thin lib over the generated `vk`.
