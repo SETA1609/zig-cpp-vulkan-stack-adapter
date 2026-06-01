@@ -5,13 +5,14 @@ A standalone **Zig library** that bundles the Vulkan stack — [vulkan-zig](http
 **License:** [MIT](LICENSE) · **Requires:** Zig 0.16+ · **Status:** pre-1.0, single-maintainer
 
 > **Status detail:** real today — the **`vk` re-export** (full typed API via
-> `@import("vulkan_stack").vk`), the **`volk` loader** (implemented in *pure
-> Zig* with `std.DynLib` — `loadBase` / `getInstanceProcAddr`; no vendored C),
-> and the **X11 + Wayland surface creators**. Still `@panic("not implemented")`
-> stubs: **VMA** (needs the C++ bridge), **shaderc**, and the **Win32 / Android**
-> surface creators — see [`docs/ROADMAP.md`](docs/ROADMAP.md). Public error sets
-> (`LoaderError` / `SurfaceError` / `vma.Error` / `shaderc.Error`) are pinned.
-> Calling a not-yet-implemented function traps at runtime with a clear message.
+> `@import("vulkan_stack").vk`), the **`volk` loader** (pure Zig via `std.DynLib`),
+> the **X11 + Wayland surface creators**, **VMA** (via a `noexcept` C++ bridge),
+> and **shaderc** (built from source by `tiawl/shaderc.zig`, opt-in under
+> **`-Dshaderc`** — see [`docs/shaderc-distribution.md`](docs/shaderc-distribution.md)).
+> Still `@panic("not implemented")`: the **Win32 / Android** surface creators —
+> see [`docs/ROADMAP.md`](docs/ROADMAP.md). Public error sets (`LoaderError` /
+> `SurfaceError` / `vma.Error` / `shaderc.Error`) are pinned. Calling a
+> not-yet-implemented function traps at runtime with a clear message.
 
 ---
 
@@ -19,6 +20,7 @@ A standalone **Zig library** that bundles the Vulkan stack — [vulkan-zig](http
 
 - [`docs/getting-started.md`](docs/getting-started.md) — **start here**: add the dep, wire the build, bootstrap instance + surface
 - [`docs/vulkan-cheat-sheet.md`](docs/vulkan-cheat-sheet.md) — what Vulkan is + how it works (the stack), with deep-dive links
+- [`docs/shaderc-distribution.md`](docs/shaderc-distribution.md) — how shaderc ships with zero consumer setup (`-Dshaderc`)
 - [`docs/vision.md`](docs/vision.md) — what this library is for; the version-coherence guarantee
 - [`docs/mission.md`](docs/mission.md) — concrete commitments (vk re-export, VMA/shaderc bridges, surface creators)
 - [`docs/api.md`](docs/api.md) — intended public API surface (signatures + semantics)

@@ -8,9 +8,9 @@
 >
 > **Note on shapes:** the `vk` re-export and the surface-creator signatures are fixed. The `vma` and `shaderc` wrapper *ergonomics* below are **suggestions** — refine them to taste when you implement the bridges. Every `extern "C"` bridge stays `noexcept` — but it is an *internal* boundary; the public Zig surface here uses the **Zig calling convention** throughout (no `callconv(.c)`, no C-style out-params).
 >
-> **Now authored:** this surface lives as code in [`../src/root.zig`](../src/root.zig) (`vk` re-export + surface creators) with [`../src/volk.zig`](../src/volk.zig), [`../src/vma.zig`](../src/vma.zig), [`../src/shaderc.zig`](../src/shaderc.zig). The `vk` re-export is **real** (generated from `vk.xml`); the rest are `@panic("not implemented")` stubs. Numeric values for this library's own enums are in [`enum-values.md`](enum-values.md).
+> **Status:** the surface lives as code in [`../src/root.zig`](../src/root.zig) with [`../src/volk.zig`](../src/volk.zig), [`../src/vma.zig`](../src/vma.zig), [`../src/shaderc.zig`](../src/shaderc.zig). **Implemented:** the `vk` re-export (generated from `vk.xml`), the `volk` loader (pure-Zig `std.DynLib`), the **X11 + Wayland** surface creators, **VMA** (C++ bridge), and **shaderc** (built from source, under `-Dshaderc`). **Still stubbed:** the **Win32 / Android** surface creators. Numeric values for this library's own enums are in [`enum-values.md`](enum-values.md).
 >
-> **Note for the future — error sets.** `shaderc.compile` already exposes an explicit named error set (`shaderc.Error`); the surface creators and `vma.*` use *inferred* sets (`!T`) for now. The library-grade goal is explicit named sets per area (e.g. `SurfaceError!vk.SurfaceKHR`, `VmaError!*Allocator`) so the error contract is documented and exhaustively `switch`-able. **Counter-argument (why not yet):** the bridges aren't written, so the real failure taxonomy isn't known and a premature set would churn — keep inferred while the VMA/surface code is built, then **lock explicit named sets at v1.0**. Revisit at the 1.0 stabilization pass.
+> **Error sets are explicit.** Each module exposes a named set — `volk.LoaderError`, `SurfaceError`, `vma.Error`, `shaderc.Error` — so the contract is documented and exhaustively `switch`-able (no inferred `!T` on the public surface).
 
 ## Module root
 
@@ -84,7 +84,14 @@ pub fn unmapMemory(a: *Allocator, allocation: *Allocation) void;
 
 ## `shaderc` — GLSL → SPIR-V  *(since v0.4.0)*
 
+Built from source by `tiawl/shaderc.zig` and linked **only** under `-Dshaderc`
+(a lazy dependency — no system SDK, cross-compiles). Without it, `compile` traps;
+branch on `available` to choose runtime compilation vs. embedded SPIR-V. See
+[`shaderc-distribution.md`](shaderc-distribution.md).
+
 ```zig
+pub const available: bool;   // true when built with -Dshaderc
+
 pub const Stage = enum { vertex, fragment, compute, geometry, tess_control, tess_eval };
 
 pub const CompileOptions = struct {
@@ -93,14 +100,19 @@ pub const CompileOptions = struct {
     entry_point: [:0]const u8 = "main",
 };
 
-/// Returns SPIR-V words; caller frees with the same allocator.
-pub fn compile(allocator: std.mem.Allocator, source: []const u8, stage: Stage, opts: CompileOptions) Error![]u32;
-
 pub const Error = error{ ShaderCompilationFailed, OutOfMemory };
-pub fn lastErrorMessage() []const u8;   // diagnostics for the most recent failure
+
+/// On a failed compile, `message` is set (allocator-owned — free it); pass
+/// `null` to ignore. Replaces a global "last error".
+pub const Diagnostics = struct { message: []u8 = &.{} };
+
+/// SPIR-V words owned by `allocator`. On ShaderCompilationFailed, `diagnostics`
+/// (if non-null) is filled with the compiler log.
+pub fn compile(allocator: std.mem.Allocator, source: []const u8, stage: Stage, opts: CompileOptions, diagnostics: ?*Diagnostics) Error![]u32;
 ```
 
-> Consumers that don't need runtime compilation can skip this entirely and embed precompiled SPIR-V — see the [ROADMAP](ROADMAP.md).
+> Consumers that don't need runtime compilation skip `-Dshaderc` entirely and
+> embed precompiled SPIR-V (`@embedFile`) — see [`shaderc-distribution.md`](shaderc-distribution.md).
 
 ## Minimal usage
 
@@ -117,7 +129,8 @@ defer vk_stack.vma.destroyAllocator(allocator);
 const buf = try vk_stack.vma.createBuffer(allocator, &buf_info, .gpu_only);
 defer vk_stack.vma.destroyBuffer(allocator, buf.buffer, buf.allocation);
 
-const spv = try vk_stack.shaderc.compile(gpa, vert_src, .vertex, .{});
+// runtime GLSL→SPIR-V (only when built with -Dshaderc; else embed a .spv):
+const spv = try vk_stack.shaderc.compile(gpa, vert_src, .vertex, .{}, null);
 defer gpa.free(spv);
 
 // surface from a windowing layer's raw handle:

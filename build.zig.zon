@@ -36,6 +36,14 @@
             .url = "git+https://github.com/KhronosGroup/Vulkan-Headers.git#015e25c3c91b70eb1a754d36fb14c4ba6ad9b0b9",
             .hash = "N-V-__8AAHAZeALsJNAOsFHuMyyXDuoFVG48EQdnJGNAZ3Th",
         },
+        // shaderc (GLSL→SPIR-V) built from source by tiawl/shaderc.zig — fetched
+        // + compiled by `zig build -Dshaderc` only (lazy), so consumers who embed
+        // precompiled SPIR-V never pay the glslang build. See docs/shaderc-distribution.md.
+        .shaderc_zig = .{
+            .url = "git+https://github.com/tiawl/shaderc.zig?ref=zig-0.16.0#7a2c31e137fb2f83fd0384e808e303950e97b157",
+            .hash = "shaderc_zig-1.0.0-mOl84-RfAwDpatEtgzDFe0Nc1iNg-AECkBQYb6LnHvwG",
+            .lazy = true,
+        },
     },
     .paths = .{
         "build.zig",

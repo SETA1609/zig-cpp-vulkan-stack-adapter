@@ -9,7 +9,7 @@
 | [vulkan-zig](https://github.com/Snektron/vulkan-zig) | **Zig** | MIT | Vulkan bindings from `vk.xml` | Re-exported as `vk` — no wrapping, no C-ABI tax |
 | [volk](https://github.com/zeux/volk) | **C** | MIT | Loader / function-pointer table | Vendored, compiled as-is; thin Zig wrapper |
 | [VMA](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) | **C++** (header-only) | MIT | GPU memory allocator | `extern "C"` bridge → idiomatic Zig |
-| [shaderc](https://github.com/google/shaderc) (wraps [glslang](https://github.com/KhronosGroup/glslang)) | **C++**, ships a **C** API | Apache-2.0 / BSD-3 | GLSL → SPIR-V | `@cImport` its C header, or a thin C++ bridge → Zig |
+| [shaderc](https://github.com/google/shaderc) (wraps [glslang](https://github.com/KhronosGroup/glslang)) | **C++**, ships a **C** API | Apache-2.0 / BSD-3 | GLSL → SPIR-V | built from source by [`tiawl/shaderc.zig`](https://github.com/tiawl/shaderc.zig) (lazy, `-Dshaderc`); pure-Zig `@cImport` wrapper, **no bridge** — see [`shaderc-distribution.md`](shaderc-distribution.md) |
 
 No GPL/LGPL dependencies.
 
