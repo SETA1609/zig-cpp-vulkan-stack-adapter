@@ -66,16 +66,16 @@ This library imports no windowing layer.
 
 ## 4. What works today vs. what traps
 
-Real now: the **`vk`** re-export (full typed API — usable immediately), the
-**`volk`** loader (`loadBase` / `getInstanceProcAddr`), and the **X11 + Wayland**
-surface creators.
+Real now: the **`vk`** re-export, the **`volk`** loader, the **X11 + Wayland**
+surface creators, and **VMA** (`vma.createBuffer`/`createImage`/`mapMemory`/…).
 
-Still `@panic("not implemented")` — **don't call yet**: **VMA**
-(`vma.createBuffer`/… — needs the C++ bridge), **shaderc** (`compile`/…), and
-the **Win32 / Android** surface creators. See [`ROADMAP.md`](ROADMAP.md).
+**shaderc** (`vk_stack.shaderc.compile`) is built from source by
+`tiawl/shaderc.zig` and only linked when you build with **`-Dshaderc`** — branch
+on `shaderc.available`; without it, embed precompiled SPIR-V (`@embedFile` a
+`.spv`). See [`shaderc-distribution.md`](shaderc-distribution.md).
 
-Until VMA lands you can allocate memory with raw `vk` calls; until shaderc lands,
-embed precompiled SPIR-V (e.g. `@embedFile` a `.spv`).
+Still `@panic("not implemented")` — **don't call yet**: the **Win32 / Android**
+surface creators. See [`ROADMAP.md`](ROADMAP.md).
 
 ## 5. Note on dispatch (volk × vulkan-zig)
 
