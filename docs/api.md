@@ -57,7 +57,7 @@ Idiomatic Zig over VMA's C++ (through a `noexcept` C bridge). *Shapes are sugges
 ```zig
 pub const Allocator = opaque {};
 pub const Allocation = opaque {};
-pub const Error = error{ AllocatorCreationFailed, OutOfHostMemory, OutOfDeviceMemory, MappingFailed };
+pub const Error = error{ OutOfHostMemory, OutOfDeviceMemory, MappingFailed, InitializationFailed, Unknown };
 
 pub const AllocatorCreateInfo = struct {
     physical_device: vk.PhysicalDevice,
