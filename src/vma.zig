@@ -1,13 +1,15 @@
 //! GPU memory allocator — idiomatic Zig over the Vulkan Memory Allocator (VMA).
 //!
-//! VMA is header-only **C++**, so it is reached through a `noexcept`
-//! `extern "C"` bridge (`src/c/vma_bridge.{h,cpp}`, landing at v0.3.0). That
-//! bridge is the *only* C-ABI boundary; everything in this file is the
-//! idiomatic Zig surface a consumer actually calls — Zig calling convention,
-//! error unions, opaque handles. *(since v0.3.0)*
+//! VMA is header-only **C++**, reached through a `noexcept` `extern "C"` bridge
+//! (`src/c/vma_bridge.{h,cpp}`). That bridge is the *only* C-ABI boundary; this
+//! file is the idiomatic Zig surface — Zig calling convention, error unions,
+//! opaque handles. The bridge returns raw `VkResult`s; the translation to
+//! `Error` lives here (using vulkan-zig's `vk.Result`), so no bridge type is
+//! exposed. *(since v0.3.0)*
 
 const std = @import("std");
 const vk = @import("vulkan");
+const volk = @import("volk.zig");
 
 /// An opaque VMA allocator instance — the root object that owns device memory
 /// pools. Create with `createAllocator`, release with `destroyAllocator`.
@@ -32,30 +34,18 @@ pub const AllocatorCreateInfo = struct {
     api_version: u32 = @bitCast(vk.API_VERSION_1_3),
 };
 
-/// Errors the fallible VMA calls can return. Maps the relevant `VkResult`s
-/// from the VMA bridge.
+/// Errors the fallible VMA calls can return — translated from `VkResult` by
+/// `check`. `Unknown` is the last resort (an unexpected `VkResult` or a caught
+/// C++ exception in the bridge).
 pub const Error = error{
-    /// `vmaCreateAllocator` failed (bad device/instance, or out of memory).
-    AllocatorCreationFailed,
-    /// Host memory exhausted creating the resource or its allocation.
     OutOfHostMemory,
-    /// Device memory exhausted backing the buffer/image.
     OutOfDeviceMemory,
     /// `mapMemory` on non-host-visible memory (e.g. `.gpu_only`), or a map failure.
     MappingFailed,
+    /// The allocator (or VMA init) could not be created.
+    InitializationFailed,
+    Unknown,
 };
-
-/// Create a VMA allocator. Caller owns it — release with `destroyAllocator`.
-pub fn createAllocator(info: AllocatorCreateInfo) Error!*Allocator {
-    _ = info;
-    @panic("not implemented");
-}
-
-/// Destroy a VMA allocator. Destroy all buffers/images created from it first.
-pub fn destroyAllocator(allocator: *Allocator) void {
-    _ = allocator;
-    @panic("not implemented");
-}
 
 /// Intended residency / access pattern for an allocation. `.auto` lets VMA
 /// choose the memory type from the resource's usage flags (recommended);
@@ -79,23 +69,6 @@ pub const BufferResult = struct {
     allocation: *Allocation,
 };
 
-/// Allocate memory and create a `vk.Buffer` in one call. `info` is a standard
-/// `VkBufferCreateInfo`; `usage` selects the memory type. *(since v0.3.0)*
-pub fn createBuffer(allocator: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage) Error!BufferResult {
-    _ = allocator;
-    _ = info;
-    _ = usage;
-    @panic("not implemented");
-}
-
-/// Destroy a buffer and free its allocation (the pair from `createBuffer`).
-pub fn destroyBuffer(allocator: *Allocator, buffer: vk.Buffer, allocation: *Allocation) void {
-    _ = allocator;
-    _ = buffer;
-    _ = allocation;
-    @panic("not implemented");
-}
-
 /// A Vulkan image paired with its backing VMA allocation.
 pub const ImageResult = struct {
     /// The created Vulkan image handle.
@@ -104,35 +77,97 @@ pub const ImageResult = struct {
     allocation: *Allocation,
 };
 
+// -- C-ABI bridge (src/c/vma_bridge.cpp) -------------------------------------
+// Dispatchable handles cross as opaque pointers; non-dispatchable as u64 (the
+// bridge is built with VK_USE_64_BIT_PTR_DEFINES=0); create-infos are passed
+// by pointer (vulkan-zig's extern structs match the C layout).
+
+extern fn vma_bridge_create_allocator(instance: ?*anyopaque, physical: ?*anyopaque, device: ?*anyopaque, api_version: u32, gipa: vk.PfnGetInstanceProcAddr, out: *?*Allocator) i32;
+extern fn vma_bridge_destroy_allocator(a: *Allocator) void;
+extern fn vma_bridge_create_buffer(a: *Allocator, info: *const vk.BufferCreateInfo, usage: c_int, out_buffer: *u64, out_alloc: *?*Allocation) i32;
+extern fn vma_bridge_destroy_buffer(a: *Allocator, buffer: u64, alloc: *Allocation) void;
+extern fn vma_bridge_create_image(a: *Allocator, info: *const vk.ImageCreateInfo, usage: c_int, out_image: *u64, out_alloc: *?*Allocation) i32;
+extern fn vma_bridge_destroy_image(a: *Allocator, image: u64, alloc: *Allocation) void;
+extern fn vma_bridge_map_memory(a: *Allocator, alloc: *Allocation, out_ptr: *?*anyopaque) i32;
+extern fn vma_bridge_unmap_memory(a: *Allocator, alloc: *Allocation) void;
+
+/// Translate the bridge's `VkResult` into `Error` (or success). Uses
+/// vulkan-zig's `vk.Result` values, so there are no magic numbers.
+fn check(result: i32) Error!void {
+    return switch (result) {
+        @intFromEnum(vk.Result.success) => {},
+        @intFromEnum(vk.Result.error_out_of_host_memory) => Error.OutOfHostMemory,
+        @intFromEnum(vk.Result.error_out_of_device_memory) => Error.OutOfDeviceMemory,
+        @intFromEnum(vk.Result.error_memory_map_failed) => Error.MappingFailed,
+        @intFromEnum(vk.Result.error_initialization_failed) => Error.InitializationFailed,
+        else => Error.Unknown,
+    };
+}
+
+/// Dispatchable Vulkan handle (`enum(usize)`) → the opaque pointer the C ABI wants.
+inline fn handlePtr(h: anytype) ?*anyopaque {
+    return @ptrFromInt(@intFromEnum(h));
+}
+
+/// Create a VMA allocator. Caller owns it — release with `destroyAllocator`.
+/// Requires a prior `volk.loadBase()` (VMA loads its entry points dynamically).
+pub fn createAllocator(info: AllocatorCreateInfo) Error!*Allocator {
+    var out: ?*Allocator = null;
+    try check(vma_bridge_create_allocator(
+        handlePtr(info.instance),
+        handlePtr(info.physical_device),
+        handlePtr(info.device),
+        info.api_version,
+        volk.getInstanceProcAddr(),
+        &out,
+    ));
+    return out.?;
+}
+
+/// Destroy a VMA allocator. Destroy all buffers/images created from it first.
+pub fn destroyAllocator(allocator: *Allocator) void {
+    vma_bridge_destroy_allocator(allocator);
+}
+
+/// Allocate memory and create a `vk.Buffer` in one call. `info` is a standard
+/// `VkBufferCreateInfo`; `usage` selects the memory type. *(since v0.3.0)*
+pub fn createBuffer(allocator: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage) Error!BufferResult {
+    var buffer: u64 = 0;
+    var alloc: ?*Allocation = null;
+    try check(vma_bridge_create_buffer(allocator, info, @intFromEnum(usage), &buffer, &alloc));
+    return .{ .buffer = @enumFromInt(buffer), .allocation = alloc.? };
+}
+
+/// Destroy a buffer and free its allocation (the pair from `createBuffer`).
+pub fn destroyBuffer(allocator: *Allocator, buffer: vk.Buffer, allocation: *Allocation) void {
+    vma_bridge_destroy_buffer(allocator, @intFromEnum(buffer), allocation);
+}
+
 /// Allocate memory and create a `vk.Image` in one call. *(since v0.3.0)*
 pub fn createImage(allocator: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage) Error!ImageResult {
-    _ = allocator;
-    _ = info;
-    _ = usage;
-    @panic("not implemented");
+    var image: u64 = 0;
+    var alloc: ?*Allocation = null;
+    try check(vma_bridge_create_image(allocator, info, @intFromEnum(usage), &image, &alloc));
+    return .{ .image = @enumFromInt(image), .allocation = alloc.? };
 }
 
 /// Destroy an image and free its allocation (the pair from `createImage`).
 pub fn destroyImage(allocator: *Allocator, image: vk.Image, allocation: *Allocation) void {
-    _ = allocator;
-    _ = image;
-    _ = allocation;
-    @panic("not implemented");
+    vma_bridge_destroy_image(allocator, @intFromEnum(image), allocation);
 }
 
 /// Map a host-visible allocation and return a pointer to its bytes. Pair with
-/// `unmapMemory`. Mapping `gpu_only` memory fails. *(since v0.3.0)*
+/// `unmapMemory`. Mapping `gpu_only` memory fails with `Error.MappingFailed`.
+/// *(since v0.3.0)*
 pub fn mapMemory(allocator: *Allocator, allocation: *Allocation) Error![*]u8 {
-    _ = allocator;
-    _ = allocation;
-    @panic("not implemented");
+    var ptr: ?*anyopaque = null;
+    try check(vma_bridge_map_memory(allocator, allocation, &ptr));
+    return @ptrCast(ptr.?);
 }
 
 /// Unmap a previously `mapMemory`'d allocation.
 pub fn unmapMemory(allocator: *Allocator, allocation: *Allocation) void {
-    _ = allocator;
-    _ = allocation;
-    @panic("not implemented");
+    vma_bridge_unmap_memory(allocator, allocation);
 }
 
 test {

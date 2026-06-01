@@ -30,7 +30,15 @@ pub const VkCtx = struct {
         const gipa = volk.getInstanceProcAddr();
         const vkb = vk.BaseWrapper.load(gipa);
 
-        const instance = try vkb.createInstance(&.{}, null);
+        // Request Vulkan 1.3 so the device promotes the 1.1+ core entry points
+        // VMA expects (e.g. vkGetBufferMemoryRequirements2) — a default
+        // (apiVersion 0 = 1.0) instance leaves them unloaded and VMA asserts.
+        const app_info = vk.ApplicationInfo{
+            .application_version = 0,
+            .engine_version = 0,
+            .api_version = @bitCast(vk.API_VERSION_1_3),
+        };
+        const instance = try vkb.createInstance(&.{ .p_application_info = &app_info }, null);
         volk.loadInstance(instance);
         const vki = vk.InstanceWrapper.load(instance, gipa);
 
