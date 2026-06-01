@@ -13,14 +13,14 @@ const gate = h.gate;
 const vma = vk_stack.vma;
 
 const done = .{
-    .createAllocator = false,
-    .destroyAllocator = false,
-    .createBuffer = false,
-    .destroyBuffer = false,
-    .createImage = false,
-    .destroyImage = false,
-    .mapMemory = false,
-    .unmapMemory = false,
+    .createAllocator = true,
+    .destroyAllocator = true,
+    .createBuffer = true,
+    .destroyBuffer = true,
+    .createImage = true,
+    .destroyImage = true,
+    .mapMemory = true,
+    .unmapMemory = true,
 };
 
 fn bufferInfo(size: u64, usage: vk.BufferUsageFlags) vk.BufferCreateInfo {

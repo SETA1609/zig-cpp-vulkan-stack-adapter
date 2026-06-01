@@ -44,6 +44,33 @@ pub fn build(b: *std.Build) void {
     // src/root.zig does `pub const vk = @import("vulkan");`.
     vulkan_stack_mod.addImport("vulkan", vk_mod);
 
+    // --- VMA C++ bridge -----------------------------------------------------
+    // VMA is header-only C++, so it compiles in its OWN static lib (the only
+    // C++ translation unit) which the vulkan_stack artifact links — keeping the
+    // C++ out of every consumer's compile. Vulkan headers come from the same
+    // pinned Vulkan-Headers dep used for vk.xml; VMA loads Vulkan entry points
+    // dynamically (we don't hard-link libvulkan — see the volk loader).
+    const vk_headers = b.dependency("vulkan_headers", .{});
+    const vma_bridge_mod = b.createModule(.{
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    vma_bridge_mod.link_libcpp = true;
+    vma_bridge_mod.addIncludePath(b.path("src/c"));
+    vma_bridge_mod.addIncludePath(b.path("vendor/VMA/include"));
+    vma_bridge_mod.addIncludePath(vk_headers.path("include"));
+    vma_bridge_mod.addCSourceFile(.{
+        .file = b.path("src/c/vma_bridge.cpp"),
+        .flags = &.{ "-std=c++23", "-DVK_NO_PROTOTYPES" },
+    });
+    const vma_bridge_lib = b.addLibrary(.{
+        .name = "vma_bridge",
+        .linkage = .static,
+        .root_module = vma_bridge_mod,
+    });
+    vulkan_stack_mod.linkLibrary(vma_bridge_lib);
+
     // --- Static-library artifact --------------------------------------------
     // Downstream `linkLibrary` on this pulls in the compiled Zig glue and
     // (later) volk/VMA/shaderc. Today it is a thin lib over the generated `vk`.
