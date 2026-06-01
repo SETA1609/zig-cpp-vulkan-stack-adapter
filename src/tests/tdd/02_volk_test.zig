@@ -10,10 +10,10 @@ const gate = h.gate;
 const volk = vk_stack.volk;
 
 const done = .{
-    .loadBase = false,
-    .getInstanceProcAddr = false,
-    .loadInstance = false,
-    .loadDevice = false,
+    .loadBase = true,
+    .getInstanceProcAddr = true,
+    .loadInstance = true,
+    .loadDevice = true,
 };
 
 // --- loadBase --------------------------------------------------------------

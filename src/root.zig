@@ -57,13 +57,29 @@ pub const SurfaceError = error{
     SurfaceCreationFailed,
 };
 
+/// Map a `vkCreate*SurfaceKHR` result to our surface contract.
+fn surfaceResult(result: vk.Result, surface: vk.SurfaceKHR) SurfaceError!vk.SurfaceKHR {
+    return switch (result) {
+        .success => surface,
+        .error_out_of_host_memory => SurfaceError.OutOfHostMemory,
+        .error_out_of_device_memory => SurfaceError.OutOfDeviceMemory,
+        else => SurfaceError.SurfaceCreationFailed,
+    };
+}
+
+/// Load one instance-level surface command by name (volk's loader resolves it).
+fn surfacePfn(comptime Pfn: type, instance: vk.Instance, name: [*:0]const u8) SurfaceError!Pfn {
+    const raw = volk.getInstanceProcAddr()(instance, name) orelse return SurfaceError.SurfaceCreationFailed;
+    return @ptrCast(raw);
+}
+
 /// Create a surface for an **X11** window. `display` is the `Display*`,
 /// `window` the X11 `Window` XID. *(since v0.2.0)*
 pub fn createX11Surface(instance: vk.Instance, display: *anyopaque, window: u64) SurfaceError!vk.SurfaceKHR {
-    _ = instance;
-    _ = display;
-    _ = window;
-    @panic("not implemented");
+    const pfn = try surfacePfn(vk.PfnCreateXlibSurfaceKHR, instance, "vkCreateXlibSurfaceKHR");
+    const info = vk.XlibSurfaceCreateInfoKHR{ .dpy = @ptrCast(display), .window = @intCast(window) };
+    var surface: vk.SurfaceKHR = .null_handle;
+    return surfaceResult(pfn(instance, &info, null, &surface), surface);
 }
 
 /// Create a surface for a **Win32** window. `hinstance` is the module
@@ -78,10 +94,10 @@ pub fn createWin32Surface(instance: vk.Instance, hinstance: *anyopaque, hwnd: *a
 /// Create a surface for a **Wayland** surface. `display` is the
 /// `wl_display*`, `surface` the `wl_surface*`. *(since v0.5.0)*
 pub fn createWaylandSurface(instance: vk.Instance, display: *anyopaque, surface: *anyopaque) SurfaceError!vk.SurfaceKHR {
-    _ = instance;
-    _ = display;
-    _ = surface;
-    @panic("not implemented");
+    const pfn = try surfacePfn(vk.PfnCreateWaylandSurfaceKHR, instance, "vkCreateWaylandSurfaceKHR");
+    const info = vk.WaylandSurfaceCreateInfoKHR{ .display = @ptrCast(display), .surface = @ptrCast(surface) };
+    var out: vk.SurfaceKHR = .null_handle;
+    return surfaceResult(pfn(instance, &info, null, &out), out);
 }
 
 /// Create a surface for an **Android** native window (`ANativeWindow*`).
