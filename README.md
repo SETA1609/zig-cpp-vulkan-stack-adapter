@@ -17,6 +17,8 @@ A standalone **Zig library** that bundles the Vulkan stack — [vulkan-zig](http
 
 ## Documentation
 
+- [`docs/getting-started.md`](docs/getting-started.md) — **start here**: add the dep, wire the build, bootstrap instance + surface
+- [`docs/vulkan-cheat-sheet.md`](docs/vulkan-cheat-sheet.md) — what Vulkan is + how it works (the stack), with deep-dive links
 - [`docs/vision.md`](docs/vision.md) — what this library is for; the version-coherence guarantee
 - [`docs/mission.md`](docs/mission.md) — concrete commitments (vk re-export, VMA/shaderc bridges, surface creators)
 - [`docs/api.md`](docs/api.md) — intended public API surface (signatures + semantics)
