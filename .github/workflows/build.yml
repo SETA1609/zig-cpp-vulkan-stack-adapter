@@ -1,17 +1,16 @@
-name: build
+name: CI
 
-# Runs on every push to main and on every PR targeting main. The `Test` step
-# is the merge gate: enable it as a required status check in the repo's branch
-# protection for `main` so a PR cannot merge until it is green.
+# Runs on every push (any branch) and every PR. The `Test (contract)` step is
+# the merge gate: enable it as a required status check in branch protection for
+# `main` so a PR can't merge until it's green on all three OSes.
 on:
   push:
-    branches: [main]
+    branches: ['**']
   pull_request:
-    branches: [main]
 
 jobs:
   build:
-    name: ${{ matrix.os }}
+    name: build · ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -24,24 +23,53 @@ jobs:
         uses: mlugg/setup-zig@v2
         with:
           version: 0.16.0
+          use-cache: true
 
-      - name: zig version
-        run: zig version
+      - run: zig version
 
-      # Formatting gate (run before build so no generated dirs are scanned).
+      # Format gate — runs on every OS (`.gitattributes` eol=lf keeps Windows LF).
       - name: Format check
         run: zig fmt --check build.zig build.zig.zon src demo
 
-      # Build the static library (generates vk bindings from vk.xml).
+      # Generates the vk bindings from vk.xml + compiles the VMA C++ bridge.
       - name: Build
         run: zig build
 
-      # Smoke demo — builds + runs a consumer of the module (see demo/main.zig).
-      - name: Run
+      # Pure-data smoke demo (no GPU) — exercises the real `vk` re-export, exits clean.
+      - name: Run smoke demo
         run: zig build run
 
-      # Unit tests — the merge gate. Data/contract tests run (incl. the real
-      # `vk` re-export); bridge behavioral tests skip until implemented
-      # (see src/tests/api_test.zig).
-      - name: Test
+      # Merge gate: contract / data tests incl. the live `vk` re-export — no GPU.
+      # The device-dependent volk/VMA + shaderc `test-tdd` suite is off-CI (it
+      # needs a Vulkan device / `-Dshaderc`); see CONTRIBUTING.md.
+      - name: Test (contract)
         run: zig build test
+
+  # The only C++↔Zig boundary in the lib (the VMA bridge). Google style, C++23 —
+  # encoded in .clang-format; clang-format-18 is needed for `Standard: c++23`.
+  clang-format:
+    name: clang-format (src/c)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang-format-18
+        run: sudo apt-get update && sudo apt-get install -y clang-format-18
+      - name: Check src/c
+        run: clang-format-18 --dry-run -Werror src/c/*.h src/c/*.cpp
+
+  # Proves the opt-in shaderc wiring compiles: fetches the lazy tiawl/shaderc.zig
+  # dep and builds shaderc + glslang + SPIRV-Tools from source. Slow on a cold
+  # cache (compiles glslang); `use-cache` makes repeat runs fast. Build-only —
+  # the runtime shaderc tests live in `test-tdd -Dshaderc`, run locally.
+  shaderc:
+    name: shaderc build (-Dshaderc)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+          use-cache: true
+      - name: Build with shaderc
+        run: zig build -Dshaderc
