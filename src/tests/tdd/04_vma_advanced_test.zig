@@ -41,6 +41,7 @@ fn imageInfo() vk.ImageCreateInfo {
 
 // --- getAllocationInfo ------------------------------------------------------
 
+// WHEN calling getAllocationInfo on a 256-byte buffer's allocation · GIVEN a live cpu_to_gpu allocation · THEN it reports a non-null backing device_memory and a size of at least 256.
 test "getAllocationInfo: reports backing device memory and a size ≥ the request" {
     try gate(done.getAllocationInfo);
     var ctx = try h.VkCtx.init();
@@ -56,6 +57,7 @@ test "getAllocationInfo: reports backing device memory and a size ≥ the reques
     try std.testing.expect(ai.size >= 256);
 }
 
+// WHEN calling getAllocationInfo on a buffer created without the MAPPED flag · GIVEN a live cpu_to_gpu allocation · THEN its mapped_data is null.
 test "getAllocationInfo: a non-mapped allocation has null mapped_data" {
     try gate(done.getAllocationInfo);
     var ctx = try h.VkCtx.init();
@@ -70,6 +72,7 @@ test "getAllocationInfo: a non-mapped allocation has null mapped_data" {
     try std.testing.expect(ai.mapped_data == null);
 }
 
+// WHEN comparing getAllocationInfo for two separate allocations · GIVEN two live cpu_to_gpu buffers · THEN they differ in either device_memory block or offset.
 test "getAllocationInfo: two allocations report distinct (memory, offset) placement" {
     try gate(done.getAllocationInfo);
     var ctx = try h.VkCtx.init();
@@ -90,6 +93,7 @@ test "getAllocationInfo: two allocations report distinct (memory, offset) placem
 
 // --- createBufferWithFlags (persistent mapping) ----------------------------
 
+// WHEN creating a buffer via createBufferWithFlags with .mapped and host_access_sequential_write · GIVEN .auto memory usage · THEN getAllocationInfo reports a non-null persistent mapped_data.
 test "createBufferWithFlags: a MAPPED auto buffer exposes a persistent pointer" {
     try gate(done.createBufferWithFlags and done.getAllocationInfo);
     var ctx = try h.VkCtx.init();
@@ -107,6 +111,7 @@ test "createBufferWithFlags: a MAPPED auto buffer exposes a persistent pointer" 
     try std.testing.expect(ai.mapped_data != null);
 }
 
+// WHEN writing a byte through the persistent mapped_data of a MAPPED auto buffer · GIVEN .mapped + host_access_sequential_write flags · THEN the value reads back equal to what was written.
 test "createBufferWithFlags: the persistent map is writable" {
     try gate(done.createBufferWithFlags and done.getAllocationInfo);
     var ctx = try h.VkCtx.init();
@@ -127,6 +132,7 @@ test "createBufferWithFlags: the persistent map is writable" {
 
 // --- flushAllocation / invalidateAllocation --------------------------------
 
+// WHEN flushing offset 0 through vk.WHOLE_SIZE of a mapped buffer · GIVEN a MAPPED auto allocation · THEN flushAllocation returns without error.
 test "flushAllocation: flushing the whole range of a mapped buffer succeeds" {
     try gate(done.flushAllocation and done.createBufferWithFlags);
     var ctx = try h.VkCtx.init();
@@ -142,6 +148,7 @@ test "flushAllocation: flushing the whole range of a mapped buffer succeeds" {
     try vma.flushAllocation(a, res.allocation, 0, vk.WHOLE_SIZE);
 }
 
+// WHEN flushing a 64-byte sub-range (offset 0) of a mapped buffer · GIVEN a MAPPED auto allocation · THEN flushAllocation returns without error.
 test "flushAllocation: flushing a sub-range succeeds" {
     try gate(done.flushAllocation and done.createBufferWithFlags);
     var ctx = try h.VkCtx.init();
@@ -157,6 +164,7 @@ test "flushAllocation: flushing a sub-range succeeds" {
     try vma.flushAllocation(a, res.allocation, 0, 64);
 }
 
+// WHEN invalidating offset 0 through vk.WHOLE_SIZE of a mapped readback buffer · GIVEN a MAPPED auto allocation with host_access_random · THEN invalidateAllocation returns without error.
 test "invalidateAllocation: invalidating a mapped readback buffer succeeds" {
     try gate(done.invalidateAllocation and done.createBufferWithFlags);
     var ctx = try h.VkCtx.init();
@@ -174,6 +182,7 @@ test "invalidateAllocation: invalidating a mapped readback buffer succeeds" {
 
 // --- createImageWithFlags ---------------------------------------------------
 
+// WHEN creating an image via createImageWithFlags with .dedicated_memory · GIVEN .gpu_only usage · THEN the image is non-null and getAllocationInfo reports offset 0 (its own block).
 test "createImageWithFlags: a dedicated-memory image lives at offset 0 of its own block" {
     try gate(done.createImageWithFlags and done.getAllocationInfo);
     var ctx = try h.VkCtx.init();
@@ -189,6 +198,7 @@ test "createImageWithFlags: a dedicated-memory image lives at offset 0 of its ow
     try std.testing.expectEqual(@as(u64, 0), ai.offset); // own block ⇒ offset 0
 }
 
+// WHEN creating an image via createImageWithFlags with no flags set · GIVEN .gpu_only usage · THEN the image is non-null.
 test "createImageWithFlags: a plain (no-flags) image still allocates" {
     try gate(done.createImageWithFlags);
     var ctx = try h.VkCtx.init();

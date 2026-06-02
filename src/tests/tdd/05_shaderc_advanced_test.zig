@@ -34,6 +34,7 @@ const macro_guarded =
     \\}
 ;
 
+// WHEN compiling source guarded by #ifndef ENABLE with the ENABLE macro defined · GIVEN shaderc available · THEN the valid branch is selected and the SPIR-V begins with the magic word.
 test "macros: a defined macro selects the valid #ifdef branch" {
     try gate(shaderc.available and done.macros);
     const spv = try shaderc.compile(alloc, macro_guarded, .vertex, .{
@@ -43,6 +44,7 @@ test "macros: a defined macro selects the valid #ifdef branch" {
     try std.testing.expectEqual(spirv_magic, spv[0]);
 }
 
+// WHEN compiling the macro-guarded source with no macros defined · GIVEN shaderc available · THEN the garbage #else branch is hit and compile returns error.ShaderCompilationFailed.
 test "macros: without the macro the same source fails to compile" {
     try gate(shaderc.available and done.macros);
     try std.testing.expectError(
@@ -51,6 +53,7 @@ test "macros: without the macro the same source fails to compile" {
     );
 }
 
+// WHEN compiling source that uses VALUE with a valued macro VALUE=1.0 defined · GIVEN shaderc available · THEN substitution succeeds and the SPIR-V begins with the magic word.
 test "macros: a valued macro is substituted into the source" {
     try gate(shaderc.available and done.macros);
     const src =
@@ -73,6 +76,7 @@ const vert_src =
     \\void main() { gl_Position = vec4(0.0, 0.0, 0.0, 1.0); }
 ;
 
+// WHEN compiling a vertex shader with target=.vulkan_1_3 · GIVEN shaderc available · THEN the emitted SPIR-V begins with the magic word.
 test "target: vulkan_1_3 yields valid SPIR-V" {
     try gate(shaderc.available and done.target);
     const spv = try shaderc.compile(alloc, vert_src, .vertex, .{ .target = .vulkan_1_3 }, null);
@@ -80,6 +84,7 @@ test "target: vulkan_1_3 yields valid SPIR-V" {
     try std.testing.expectEqual(spirv_magic, spv[0]);
 }
 
+// WHEN compiling the same shader at target .vulkan_1_0 versus .vulkan_1_3 · GIVEN shaderc available · THEN the 1.3 build's SPIR-V version word (spv[1]) is greater than the 1.0 build's.
 test "target: a higher Vulkan target emits a higher SPIR-V version word" {
     try gate(shaderc.available and done.target);
     // spv[1] is the SPIR-V version word; Vulkan 1.0→SPIR-V 1.0, 1.3→SPIR-V 1.6.
@@ -110,6 +115,7 @@ const includer_src =
     \\void main() { gl_Position = vec4(value(), 0.0, 0.0, 1.0); }
 ;
 
+// WHEN compiling source with #include "common.glsl" and an includer that resolves it · GIVEN shaderc available · THEN the include is pulled in and the SPIR-V begins with the magic word.
 test "includes: a resolved #include is pulled into the compilation" {
     try gate(shaderc.available and done.includes);
     const spv = try shaderc.compile(alloc, includer_src, .vertex, .{
@@ -119,6 +125,7 @@ test "includes: a resolved #include is pulled into the compilation" {
     try std.testing.expectEqual(spirv_magic, spv[0]);
 }
 
+// WHEN compiling source that #includes "missing.glsl" the includer cannot resolve · GIVEN shaderc available and a Diagnostics sink · THEN compile returns error.ShaderCompilationFailed and the diagnostic message is non-empty.
 test "includes: an unresolved #include fails with a diagnostic" {
     try gate(shaderc.available and done.includes);
     const src =
@@ -135,6 +142,7 @@ test "includes: an unresolved #include fails with a diagnostic" {
     try std.testing.expect(diag.message.len > 0);
 }
 
+// WHEN compiling source containing an #include with no includer configured · GIVEN shaderc available · THEN compile returns error.ShaderCompilationFailed.
 test "includes: an #include with no includer set fails" {
     try gate(shaderc.available and done.includes);
     try std.testing.expectError(
@@ -147,6 +155,7 @@ test "includes: an #include with no includer set fails" {
 // New stages — ray tracing & mesh
 // =============================================================================
 
+// WHEN compiling a GL_EXT_ray_tracing raygen shader in the .raygen stage with target .vulkan_1_2 · GIVEN shaderc available · THEN the SPIR-V begins with the magic word.
 test "stages: a raygen shader compiles under a Vulkan 1.2 target" {
     try gate(shaderc.available and done.stages);
     const src =
@@ -159,6 +168,7 @@ test "stages: a raygen shader compiles under a Vulkan 1.2 target" {
     try std.testing.expectEqual(spirv_magic, spv[0]);
 }
 
+// WHEN compiling a GL_EXT_mesh_shader mesh shader in the .mesh stage with target .vulkan_1_3 · GIVEN shaderc available · THEN the SPIR-V begins with the magic word.
 test "stages: a mesh shader compiles under a Vulkan 1.3 target" {
     try gate(shaderc.available and done.stages);
     const src =

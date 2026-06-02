@@ -34,6 +34,7 @@ const comp_src =
 // shaderc.compile — success paths
 // =============================================================================
 
+// WHEN compiling a trivial vertex shader · GIVEN default compile options and shaderc available · THEN a non-empty SPIR-V word slice is returned whose first word is the magic number 0x07230203.
 test "compile: a trivial vertex shader yields SPIR-V with the magic word" {
     try gate(shaderc.available);
     const spv = try shaderc.compile(std.testing.allocator, vert_src, .vertex, .{}, null);
@@ -42,6 +43,7 @@ test "compile: a trivial vertex shader yields SPIR-V with the magic word" {
     try std.testing.expectEqual(spirv_magic, spv[0]);
 }
 
+// WHEN compiling a fragment shader with a color output · GIVEN default options and the .fragment stage · THEN the SPIR-V begins with the magic word.
 test "compile: a fragment shader compiles to SPIR-V" {
     try gate(shaderc.available);
     const spv = try shaderc.compile(std.testing.allocator, frag_src, .fragment, .{}, null);
@@ -49,6 +51,7 @@ test "compile: a fragment shader compiles to SPIR-V" {
     try std.testing.expectEqual(spirv_magic, spv[0]);
 }
 
+// WHEN compiling a compute shader with a local workgroup size · GIVEN default options and the .compute stage · THEN the SPIR-V begins with the magic word.
 test "compile: a compute shader compiles to SPIR-V" {
     try gate(shaderc.available);
     const spv = try shaderc.compile(std.testing.allocator, comp_src, .compute, .{}, null);
@@ -56,6 +59,7 @@ test "compile: a compute shader compiles to SPIR-V" {
     try std.testing.expectEqual(spirv_magic, spv[0]);
 }
 
+// WHEN compiling the vertex shader with optimize=.none · GIVEN the unoptimized optimization level · THEN the emitted SPIR-V still begins with the magic word.
 test "compile: optimize=.none produces valid SPIR-V" {
     try gate(shaderc.available);
     const spv = try shaderc.compile(std.testing.allocator, vert_src, .vertex, .{ .optimize = .none }, null);
@@ -63,6 +67,7 @@ test "compile: optimize=.none produces valid SPIR-V" {
     try std.testing.expectEqual(spirv_magic, spv[0]);
 }
 
+// WHEN compiling the vertex shader with optimize=.size · GIVEN the size optimization level · THEN the emitted SPIR-V still begins with the magic word.
 test "compile: optimize=.size produces valid SPIR-V" {
     try gate(shaderc.available);
     const spv = try shaderc.compile(std.testing.allocator, vert_src, .vertex, .{ .optimize = .size }, null);
@@ -70,6 +75,7 @@ test "compile: optimize=.size produces valid SPIR-V" {
     try std.testing.expectEqual(spirv_magic, spv[0]);
 }
 
+// WHEN compiling the same source once with debug_info=true and once with it false · GIVEN optimize=.none on both · THEN the debug build is valid SPIR-V and is no smaller than the stripped build.
 test "compile: debug_info=true is valid SPIR-V no smaller than the stripped build" {
     try gate(shaderc.available);
     const dbg = try shaderc.compile(std.testing.allocator, vert_src, .vertex, .{ .optimize = .none, .debug_info = true }, null);
@@ -84,6 +90,7 @@ test "compile: debug_info=true is valid SPIR-V no smaller than the stripped buil
 // shaderc.compile — failure path + Diagnostics
 // =============================================================================
 
+// WHEN compiling source that is not valid GLSL · GIVEN the .vertex stage and no diagnostics sink · THEN compile returns error.ShaderCompilationFailed.
 test "compile: invalid GLSL reports ShaderCompilationFailed" {
     try gate(shaderc.available);
     try std.testing.expectError(
@@ -92,6 +99,7 @@ test "compile: invalid GLSL reports ShaderCompilationFailed" {
     );
 }
 
+// WHEN compiling source that calls an undeclared function · GIVEN a Diagnostics sink is passed · THEN compile fails with ShaderCompilationFailed and the Diagnostics message is non-empty (and owned).
 test "compile: a failure fills Diagnostics with a non-empty message" {
     try gate(shaderc.available);
     var diag: shaderc.Diagnostics = .{};
@@ -103,6 +111,7 @@ test "compile: a failure fills Diagnostics with a non-empty message" {
     try std.testing.expect(diag.message.len > 0);
 }
 
+// WHEN compiling a valid vertex shader · GIVEN a Diagnostics sink is passed · THEN compile succeeds and the Diagnostics message stays empty (length 0).
 test "compile: success leaves a passed Diagnostics untouched" {
     try gate(shaderc.available);
     var diag: shaderc.Diagnostics = .{};

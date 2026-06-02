@@ -44,6 +44,7 @@ fn imageInfo() vk.ImageCreateInfo {
 
 // --- createAllocator / destroyAllocator ------------------------------------
 
+// WHEN calling createAllocator with the VkCtx's allocator info · GIVEN a headless instance/device/physical device · THEN a non-null allocator handle is returned.
 test "createAllocator: returns a non-null allocator" {
     try gate(done.createAllocator and done.destroyAllocator);
     var ctx = try h.VkCtx.init();
@@ -53,6 +54,7 @@ test "createAllocator: returns a non-null allocator" {
     try std.testing.expect(@intFromPtr(a) != 0);
 }
 
+// WHEN inspecting the VkCtx allocator info and creating an allocator from it · GIVEN no api_version override · THEN api_version equals Vulkan 1.3 and createAllocator succeeds.
 test "createAllocator: defaults to the Vulkan 1.3 api_version" {
     try gate(done.createAllocator and done.destroyAllocator);
     var ctx = try h.VkCtx.init();
@@ -63,6 +65,7 @@ test "createAllocator: defaults to the Vulkan 1.3 api_version" {
     defer vma.destroyAllocator(a);
 }
 
+// WHEN creating, destroying, then creating another allocator · GIVEN the same VkCtx allocator info · THEN both create/destroy cycles complete cleanly.
 test "createAllocator: create→destroy→create again is clean" {
     try gate(done.createAllocator and done.destroyAllocator);
     var ctx = try h.VkCtx.init();
@@ -75,6 +78,7 @@ test "createAllocator: create→destroy→create again is clean" {
 
 // --- createBuffer / destroyBuffer ------------------------------------------
 
+// WHEN creating a 256-byte transfer-src buffer with usage .cpu_to_gpu · GIVEN a live allocator · THEN the result's buffer is non-null and its allocation pointer is non-null.
 test "createBuffer: a cpu_to_gpu buffer is non-null with an allocation" {
     try gate(done.createAllocator and done.destroyAllocator and done.createBuffer and done.destroyBuffer);
     var ctx = try h.VkCtx.init();
@@ -88,6 +92,7 @@ test "createBuffer: a cpu_to_gpu buffer is non-null with an allocation" {
     try std.testing.expect(@intFromPtr(res.allocation) != 0);
 }
 
+// WHEN creating a 1024-byte vertex+transfer-dst buffer with usage .gpu_only · GIVEN a live allocator · THEN the result's buffer is non-null.
 test "createBuffer: a gpu_only vertex buffer is created" {
     try gate(done.createAllocator and done.destroyAllocator and done.createBuffer and done.destroyBuffer);
     var ctx = try h.VkCtx.init();
@@ -100,6 +105,7 @@ test "createBuffer: a gpu_only vertex buffer is created" {
     try std.testing.expect(res.buffer != .null_handle);
 }
 
+// WHEN creating two buffers from the same create info · GIVEN a live allocator · THEN the two buffers have distinct handles.
 test "createBuffer: two buffers get distinct handles" {
     try gate(done.createAllocator and done.destroyAllocator and done.createBuffer and done.destroyBuffer);
     var ctx = try h.VkCtx.init();
@@ -116,6 +122,7 @@ test "createBuffer: two buffers get distinct handles" {
 
 // --- createImage / destroyImage --------------------------------------------
 
+// WHEN creating a 4x4 RGBA8 2D image with usage .gpu_only · GIVEN a live allocator · THEN the result's image is non-null and its allocation pointer is non-null.
 test "createImage: a gpu_only 2D image is non-null with an allocation" {
     try gate(done.createAllocator and done.destroyAllocator and done.createImage and done.destroyImage);
     var ctx = try h.VkCtx.init();
@@ -129,6 +136,7 @@ test "createImage: a gpu_only 2D image is non-null with an allocation" {
     try std.testing.expect(@intFromPtr(res.allocation) != 0);
 }
 
+// WHEN creating two images from the same create info · GIVEN a live allocator · THEN the two images have distinct handles.
 test "createImage: two images get distinct handles" {
     try gate(done.createAllocator and done.destroyAllocator and done.createImage and done.destroyImage);
     var ctx = try h.VkCtx.init();
@@ -143,6 +151,7 @@ test "createImage: two images get distinct handles" {
     try std.testing.expect(x.image != y.image);
 }
 
+// WHEN creating a sampled + transfer-dst 2D image with usage .gpu_only · GIVEN a live allocator · THEN the result's image is non-null.
 test "createImage: a sampled+transfer-dst image is created" {
     try gate(done.createAllocator and done.destroyAllocator and done.createImage and done.destroyImage);
     var ctx = try h.VkCtx.init();
@@ -157,6 +166,7 @@ test "createImage: a sampled+transfer-dst image is created" {
 
 // --- mapMemory / unmapMemory -----------------------------------------------
 
+// WHEN mapping a cpu_to_gpu buffer's allocation via mapMemory · GIVEN a live host-visible allocation · THEN a non-null pointer is returned.
 test "mapMemory: mapping a cpu_to_gpu allocation returns a non-null pointer" {
     try gate(done.createAllocator and done.destroyAllocator and done.createBuffer and done.destroyBuffer and done.mapMemory and done.unmapMemory);
     var ctx = try h.VkCtx.init();
@@ -171,6 +181,7 @@ test "mapMemory: mapping a cpu_to_gpu allocation returns a non-null pointer" {
     try std.testing.expect(@intFromPtr(ptr) != 0);
 }
 
+// WHEN writing bytes through a mapped pointer, unmapping, then remapping and reading · GIVEN a host-visible cpu_to_gpu buffer · THEN the read-back bytes equal the written pattern.
 test "mapMemory: host-visible memory round-trips a byte pattern" {
     try gate(done.createAllocator and done.destroyAllocator and done.createBuffer and done.destroyBuffer and done.mapMemory and done.unmapMemory);
     var ctx = try h.VkCtx.init();
@@ -192,6 +203,7 @@ test "mapMemory: host-visible memory round-trips a byte pattern" {
     try std.testing.expectEqual(@as(u8, 0xCD), r[1]);
 }
 
+// WHEN mapping, unmapping, then mapping an allocation again · GIVEN a host-visible cpu_to_gpu buffer · THEN both maps return non-null pointers.
 test "mapMemory: a mapped allocation can be unmapped and remapped" {
     try gate(done.createAllocator and done.destroyAllocator and done.createBuffer and done.destroyBuffer and done.mapMemory and done.unmapMemory);
     var ctx = try h.VkCtx.init();
