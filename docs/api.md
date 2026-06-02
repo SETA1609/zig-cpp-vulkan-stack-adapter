@@ -80,6 +80,29 @@ pub fn destroyImage(a: *Allocator, image: vk.Image, allocation: *Allocation) voi
 
 pub fn mapMemory(a: *Allocator, allocation: *Allocation) Error![*]u8;
 pub fn unmapMemory(a: *Allocator, allocation: *Allocation) void;
+
+// --- depth (since v0.5.0) ---------------------------------------------------
+
+// Allocation-create flags. With `Usage.auto`, set a `host_access_*` bit to get
+// mappable memory; `mapped` keeps it persistently mapped (see getAllocationInfo).
+pub const Flags = packed struct(u32) {
+    dedicated_memory: bool = false,
+    mapped: bool = false,
+    host_access_sequential_write: bool = false,
+    host_access_random: bool = false,
+    _reserved: u28 = 0,
+};
+pub fn createBufferWithFlags(a: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage, flags: Flags) Error!BufferResult;
+pub fn createImageWithFlags(a: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage, flags: Flags) Error!ImageResult;
+
+// Where an allocation lives; `mapped_data` non-null only under `Flags.mapped`.
+pub const AllocationInfo = struct { memory_type: u32, device_memory: vk.DeviceMemory, offset: u64, size: u64, mapped_data: ?[*]u8 };
+pub fn getAllocationInfo(a: *Allocator, allocation: *Allocation) AllocationInfo;
+
+// Non-coherent host memory: flush CPU→GPU, invalidate GPU→CPU. `vk.WHOLE_SIZE`
+// covers offset→end. No-ops on host-coherent memory.
+pub fn flushAllocation(a: *Allocator, allocation: *Allocation, offset: u64, size: u64) Error!void;
+pub fn invalidateAllocation(a: *Allocator, allocation: *Allocation, offset: u64, size: u64) Error!void;
 ```
 
 ## `shaderc` — GLSL → SPIR-V  *(since v0.4.0)*
