@@ -142,8 +142,8 @@ fn check(result: i32) Error!void {
 }
 
 /// Dispatchable Vulkan handle (`enum(usize)`) → the opaque pointer the C ABI wants.
-inline fn handlePtr(h: anytype) ?*anyopaque {
-    return @ptrFromInt(@intFromEnum(h));
+inline fn handlePtr(handle: anytype) ?*anyopaque {
+    return @ptrFromInt(@intFromEnum(handle));
 }
 
 /// Create a VMA allocator. Caller owns it — release with `destroyAllocator`.

@@ -66,20 +66,20 @@ pub const AllocatorCreateInfo = struct {
     api_version: u32 = vk.API_VERSION_1_3,
 };
 pub fn createAllocator(info: AllocatorCreateInfo) Error!*Allocator;
-pub fn destroyAllocator(a: *Allocator) void;
+pub fn destroyAllocator(allocator: *Allocator) void;
 
 pub const Usage = enum { auto, gpu_only, cpu_to_gpu, gpu_to_cpu };
 
 pub const BufferResult = struct { buffer: vk.Buffer, allocation: *Allocation };
-pub fn createBuffer(a: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage) Error!BufferResult;
-pub fn destroyBuffer(a: *Allocator, buffer: vk.Buffer, allocation: *Allocation) void;
+pub fn createBuffer(allocator: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage) Error!BufferResult;
+pub fn destroyBuffer(allocator: *Allocator, buffer: vk.Buffer, allocation: *Allocation) void;
 
 pub const ImageResult = struct { image: vk.Image, allocation: *Allocation };
-pub fn createImage(a: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage) Error!ImageResult;
-pub fn destroyImage(a: *Allocator, image: vk.Image, allocation: *Allocation) void;
+pub fn createImage(allocator: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage) Error!ImageResult;
+pub fn destroyImage(allocator: *Allocator, image: vk.Image, allocation: *Allocation) void;
 
-pub fn mapMemory(a: *Allocator, allocation: *Allocation) Error![*]u8;
-pub fn unmapMemory(a: *Allocator, allocation: *Allocation) void;
+pub fn mapMemory(allocator: *Allocator, allocation: *Allocation) Error![*]u8;
+pub fn unmapMemory(allocator: *Allocator, allocation: *Allocation) void;
 
 // --- depth (since v0.5.0) ---------------------------------------------------
 
@@ -92,17 +92,17 @@ pub const Flags = packed struct(u32) {
     host_access_random: bool = false,
     _reserved: u28 = 0,
 };
-pub fn createBufferWithFlags(a: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage, flags: Flags) Error!BufferResult;
-pub fn createImageWithFlags(a: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage, flags: Flags) Error!ImageResult;
+pub fn createBufferWithFlags(allocator: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage, flags: Flags) Error!BufferResult;
+pub fn createImageWithFlags(allocator: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage, flags: Flags) Error!ImageResult;
 
 // Where an allocation lives; `mapped_data` non-null only under `Flags.mapped`.
 pub const AllocationInfo = struct { memory_type: u32, device_memory: vk.DeviceMemory, offset: u64, size: u64, mapped_data: ?[*]u8 };
-pub fn getAllocationInfo(a: *Allocator, allocation: *Allocation) AllocationInfo;
+pub fn getAllocationInfo(allocator: *Allocator, allocation: *Allocation) AllocationInfo;
 
 // Non-coherent host memory: flush CPU→GPU, invalidate GPU→CPU. `vk.WHOLE_SIZE`
 // covers offset→end. No-ops on host-coherent memory.
-pub fn flushAllocation(a: *Allocator, allocation: *Allocation, offset: u64, size: u64) Error!void;
-pub fn invalidateAllocation(a: *Allocator, allocation: *Allocation, offset: u64, size: u64) Error!void;
+pub fn flushAllocation(allocator: *Allocator, allocation: *Allocation, offset: u64, size: u64) Error!void;
+pub fn invalidateAllocation(allocator: *Allocator, allocation: *Allocation, offset: u64, size: u64) Error!void;
 ```
 
 ## `shaderc` — GLSL → SPIR-V  *(since v0.4.0)*
@@ -131,8 +131,8 @@ pub const Macro = struct { name: []const u8, value: ?[]const u8 = null };
 // `#include` resolution. `resolve` returns the source, or null if not found.
 pub const IncludeResult = struct { name: []const u8, content: []const u8 };
 pub const Includer = struct {
-    ctx: ?*anyopaque = null,
-    resolve: *const fn (ctx: ?*anyopaque, requested: []const u8, requesting: []const u8) ?IncludeResult,
+    context: ?*anyopaque = null,
+    resolve: *const fn (context: ?*anyopaque, requested: []const u8, requesting: []const u8) ?IncludeResult,
 };
 
 pub const CompileOptions = struct {
@@ -152,7 +152,7 @@ pub const Diagnostics = struct { message: []u8 = &.{} };
 
 /// SPIR-V words owned by `allocator`. On ShaderCompilationFailed, `diagnostics`
 /// (if non-null) is filled with the compiler log.
-pub fn compile(allocator: std.mem.Allocator, source: []const u8, stage: Stage, opts: CompileOptions, diagnostics: ?*Diagnostics) Error![]u32;
+pub fn compile(allocator: std.mem.Allocator, source: []const u8, stage: Stage, options: CompileOptions, diagnostics: ?*Diagnostics) Error![]u32;
 ```
 
 > Consumers that don't need runtime compilation skip `-Dshaderc` entirely and

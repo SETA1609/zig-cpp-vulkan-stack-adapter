@@ -59,10 +59,10 @@ pub const IncludeResult = struct {
 /// `null` if it can't be found (the compile then fails with a diagnostic).
 pub const Includer = struct {
     /// Opaque caller context handed back to `resolve` (e.g. an include map).
-    ctx: ?*anyopaque = null,
+    context: ?*anyopaque = null,
     /// `requested` is the text inside the `#include`; `requesting` is the name
     /// of the file doing the including (for relative resolution).
-    resolve: *const fn (ctx: ?*anyopaque, requested: []const u8, requesting: []const u8) ?IncludeResult,
+    resolve: *const fn (context: ?*anyopaque, requested: []const u8, requesting: []const u8) ?IncludeResult,
 };
 
 /// Knobs for a single `compile` call.
@@ -100,10 +100,10 @@ pub fn compile(
     allocator: std.mem.Allocator,
     source: []const u8,
     stage: Stage,
-    opts: CompileOptions,
+    options: CompileOptions,
     diagnostics: ?*Diagnostics,
 ) Error![]u32 {
-    return backend.compile(allocator, source, stage, opts, diagnostics);
+    return backend.compile(allocator, source, stage, options, diagnostics);
 }
 
 const backend = if (available) struct {
@@ -113,7 +113,7 @@ const backend = if (available) struct {
 
     // Per-compile context for the include callbacks (shaderc hands back one
     // `void*`). Lives on `compile`'s stack — valid for the whole synchronous call.
-    const IncludeCtx = struct { includer: Includer, allocator: std.mem.Allocator };
+    const IncludeContext = struct { includer: Includer, allocator: std.mem.Allocator };
 
     // One resolved include + its owned strings, so the release callback can free.
     const ResultBox = struct {
@@ -141,31 +141,31 @@ const backend = if (available) struct {
     ) callconv(.c) [*c]c.shaderc_include_result {
         _ = include_type;
         _ = include_depth;
-        const ictx: *IncludeCtx = @ptrCast(@alignCast(user_data.?));
+        const include_context: *IncludeContext = @ptrCast(@alignCast(user_data.?));
         const requested = std.mem.span(requested_source);
         const requesting = std.mem.span(requesting_source);
 
-        const box = ictx.allocator.create(ResultBox) catch return &oom_result;
-        box.allocator = ictx.allocator;
-        if (ictx.includer.resolve(ictx.includer.ctx, requested, requesting)) |inc| {
-            box.name = ictx.allocator.dupe(u8, inc.name) catch {
-                ictx.allocator.destroy(box);
+        const box = include_context.allocator.create(ResultBox) catch return &oom_result;
+        box.allocator = include_context.allocator;
+        if (include_context.includer.resolve(include_context.includer.context, requested, requesting)) |included| {
+            box.name = include_context.allocator.dupe(u8, included.name) catch {
+                include_context.allocator.destroy(box);
                 return &oom_result;
             };
-            box.content = ictx.allocator.dupe(u8, inc.content) catch {
-                ictx.allocator.free(box.name);
-                ictx.allocator.destroy(box);
+            box.content = include_context.allocator.dupe(u8, included.content) catch {
+                include_context.allocator.free(box.name);
+                include_context.allocator.destroy(box);
                 return &oom_result;
             };
         } else {
             // Empty source_name signals "not found"; content carries the error.
-            box.name = ictx.allocator.dupe(u8, "") catch {
-                ictx.allocator.destroy(box);
+            box.name = include_context.allocator.dupe(u8, "") catch {
+                include_context.allocator.destroy(box);
                 return &oom_result;
             };
-            box.content = std.fmt.allocPrint(ictx.allocator, "'{s}': include not found", .{requested}) catch {
-                ictx.allocator.free(box.name);
-                ictx.allocator.destroy(box);
+            box.content = std.fmt.allocPrint(include_context.allocator, "'{s}': include not found", .{requested}) catch {
+                include_context.allocator.free(box.name);
+                include_context.allocator.destroy(box);
                 return &oom_result;
             };
         }
@@ -188,36 +188,36 @@ const backend = if (available) struct {
         box.allocator.destroy(box);
     }
 
-    fn compile(allocator: std.mem.Allocator, source: []const u8, stage: Stage, opts: CompileOptions, diagnostics: ?*Diagnostics) Error![]u32 {
+    fn compile(allocator: std.mem.Allocator, source: []const u8, stage: Stage, options: CompileOptions, diagnostics: ?*Diagnostics) Error![]u32 {
         const compiler = c.shaderc_compiler_initialize() orelse return Error.OutOfMemory;
         defer c.shaderc_compiler_release(compiler);
-        const options = c.shaderc_compile_options_initialize() orelse return Error.OutOfMemory;
-        defer c.shaderc_compile_options_release(options);
+        const compile_options = c.shaderc_compile_options_initialize() orelse return Error.OutOfMemory;
+        defer c.shaderc_compile_options_release(compile_options);
 
-        c.shaderc_compile_options_set_optimization_level(options, switch (opts.optimize) {
+        c.shaderc_compile_options_set_optimization_level(compile_options, switch (options.optimize) {
             .none => c.shaderc_optimization_level_zero,
             .size => c.shaderc_optimization_level_size,
             .performance => c.shaderc_optimization_level_performance,
         });
-        if (opts.debug_info) c.shaderc_compile_options_set_generate_debug_info(options);
+        if (options.debug_info) c.shaderc_compile_options_set_generate_debug_info(compile_options);
 
-        c.shaderc_compile_options_set_target_env(options, c.shaderc_target_env_vulkan, switch (opts.target) {
+        c.shaderc_compile_options_set_target_env(compile_options, c.shaderc_target_env_vulkan, switch (options.target) {
             .vulkan_1_0 => c.shaderc_env_version_vulkan_1_0,
             .vulkan_1_1 => c.shaderc_env_version_vulkan_1_1,
             .vulkan_1_2 => c.shaderc_env_version_vulkan_1_2,
             .vulkan_1_3 => c.shaderc_env_version_vulkan_1_3,
         });
 
-        for (opts.macros) |m| {
-            const v = if (m.value) |val| val.ptr else null;
-            const vlen = if (m.value) |val| val.len else 0;
-            c.shaderc_compile_options_add_macro_definition(options, m.name.ptr, m.name.len, v, vlen);
+        for (options.macros) |macro| {
+            const v = if (macro.value) |val| val.ptr else null;
+            const vlen = if (macro.value) |val| val.len else 0;
+            c.shaderc_compile_options_add_macro_definition(compile_options, macro.name.ptr, macro.name.len, v, vlen);
         }
 
-        var include_ctx: IncludeCtx = undefined;
-        if (opts.includer) |inc| {
-            include_ctx = .{ .includer = inc, .allocator = allocator };
-            c.shaderc_compile_options_set_include_callbacks(options, includeResolve, includeRelease, &include_ctx);
+        var include_context: IncludeContext = undefined;
+        if (options.includer) |included| {
+            include_context = .{ .includer = included, .allocator = allocator };
+            c.shaderc_compile_options_set_include_callbacks(compile_options, includeResolve, includeRelease, &include_context);
         }
 
         const kind = switch (stage) {
@@ -243,8 +243,8 @@ const backend = if (available) struct {
             source.len,
             @intCast(kind),
             "input",
-            opts.entry_point.ptr,
-            options,
+            options.entry_point.ptr,
+            compile_options,
         ) orelse return Error.OutOfMemory;
         defer c.shaderc_result_release(result);
 
@@ -263,8 +263,8 @@ const backend = if (available) struct {
         return out;
     }
 } else struct {
-    fn compile(allocator: std.mem.Allocator, source: []const u8, stage: Stage, opts: CompileOptions, diagnostics: ?*Diagnostics) Error![]u32 {
-        _ = .{ allocator, source, stage, opts, diagnostics };
+    fn compile(allocator: std.mem.Allocator, source: []const u8, stage: Stage, options: CompileOptions, diagnostics: ?*Diagnostics) Error![]u32 {
+        _ = .{ allocator, source, stage, options, diagnostics };
         @panic("shaderc not built — rebuild with `-Dshaderc` (see docs/shaderc-distribution.md)");
     }
 };
