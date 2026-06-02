@@ -98,7 +98,7 @@ for that code, but it stays **behind the Zig API**:
 
 - Every `extern "C"` boundary function (the VMA bridge — shaderc needs none, it ships a C API consumed via `@cImport`) is **`noexcept`** and **catches all exceptions before it crosses the C ABI**.
 - **No C++ type (class / template / `std::*`) crosses the boundary** — the Zig wrappers (`src/vma.zig`, `src/shaderc.zig`) own the idiomatic surface.
-- **C++ style: Google conventions, max C++23.** Already encoded in [`.clang-format`](.clang-format) (`BasedOnStyle: Google`, `Standard: c++23`). Run `clang-format`; do not use language features past C++23.
+- **C++ style: Google conventions, max C++23.** Already encoded in [`.clang-format`](.clang-format) (`BasedOnStyle: Google`, `Standard: Latest`). Run `clang-format`; do not use language features past C++23.
 - **Smart pointers first, manual pointers later — in separate PRs.** Write the initial bridge with RAII / smart pointers (`std::unique_ptr`, `std::shared_ptr`) so ownership is obviously correct, and land that. If profiling later shows a smart-pointer is a real cost on a hot path, move it to a manual / raw pointer **in a follow-up PR** dedicated to that optimization, with the measurement that justifies it. Correctness first, optimization second, never mixed in one PR.
 
 ## Out of scope
