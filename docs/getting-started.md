@@ -44,7 +44,15 @@ pub fn run(x11_display: *anyopaque, x11_window: u64, exts: []const [*:0]const u8
     const vkb = vk.BaseWrapper.load(volk.getInstanceProcAddr());
 
     // 2. Create the instance with the extensions your window source requires.
+    //    Request Vulkan 1.3 so the device later promotes the 1.1+ core entry
+    //    points VMA needs (a default apiVersion 0 = 1.0 makes VMA assert).
+    const app_info = vk.ApplicationInfo{
+        .application_version = 0,
+        .engine_version = 0,
+        .api_version = @bitCast(vk.API_VERSION_1_3),
+    };
     const instance = try vkb.createInstance(&.{
+        .p_application_info = &app_info,
         .enabled_extension_count = @intCast(exts.len),
         .pp_enabled_extension_names = exts.ptr,
     }, null);
@@ -67,17 +75,41 @@ This library imports no windowing layer.
 ## 4. What works today vs. what traps
 
 Real now: the **`vk`** re-export, the **`volk`** loader, the **X11 + Wayland**
-surface creators, and **VMA** (`vma.createBuffer`/`createImage`/`mapMemory`/…).
+surface creators, and **VMA** — `createAllocator`, `createBuffer`/`createImage`
+(+ `…WithFlags` for host-access / persistent `mapped` / dedicated memory),
+`mapMemory`, `getAllocationInfo`, and `flushAllocation`/`invalidateAllocation`
+for non-coherent host memory.
 
 **shaderc** (`vk_stack.shaderc.compile`) is built from source by
 `tiawl/shaderc.zig` and only linked when you build with **`-Dshaderc`** — branch
 on `shaderc.available`; without it, embed precompiled SPIR-V (`@embedFile` a
-`.spv`). See [`shaderc-distribution.md`](shaderc-distribution.md).
+`.spv`). It supports macro defines, a target Vulkan/SPIR-V version, `#include`
+resolution, and the ray-tracing + mesh stages. See
+[`shaderc-distribution.md`](shaderc-distribution.md).
 
 Still `@panic("not implemented")` — **don't call yet**: the **Win32 / Android**
-surface creators. See [`ROADMAP.md`](ROADMAP.md).
+surface creators (and there is no Metal surface yet — macOS is contributor-led).
+See [`ROADMAP.md`](ROADMAP.md).
 
-## 5. Note on dispatch (volk × vulkan-zig)
+## 5. Compiling a shader (optional, `-Dshaderc`)
+
+```zig
+const shaderc = vk_stack.shaderc;
+if (shaderc.available) {                 // true only when built with -Dshaderc
+    var diagnostics: shaderc.Diagnostics = .{};
+    const spirv = shaderc.compile(gpa, glsl_source, .vertex, .{
+        .target = .vulkan_1_3,
+        .macros = &.{.{ .name = "MAX_LIGHTS", .value = "8" }},
+    }, &diagnostics) catch |err| {
+        std.debug.print("shader error: {s}\n", .{diagnostics.message});
+        return err;
+    };
+    defer gpa.free(spirv);               // SPIR-V words, caller-owned
+    // vkCreateShaderModule(.{ .code_size = spirv.len * 4, .p_code = spirv.ptr })
+}
+```
+
+## 6. Note on dispatch (volk × vulkan-zig)
 
 `volk` only does the *loading* (dynamically open `libvulkan`, get
 `vkGetInstanceProcAddr`). The *typed dispatch* is vulkan-zig's
