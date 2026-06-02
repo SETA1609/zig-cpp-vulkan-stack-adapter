@@ -21,6 +21,16 @@ static VmaMemoryUsage to_vma_usage(VmaBridgeUsage u) {
     }
 }
 
+// Map our stable bridge flag bits onto VMA's (non-contiguous) flag bits.
+static VmaAllocationCreateFlags to_vma_flags(uint32_t f) {
+    VmaAllocationCreateFlags out = 0;
+    if (f & VMA_BRIDGE_ALLOC_DEDICATED_MEMORY)             out |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+    if (f & VMA_BRIDGE_ALLOC_MAPPED)                       out |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    if (f & VMA_BRIDGE_ALLOC_HOST_ACCESS_SEQUENTIAL_WRITE) out |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    if (f & VMA_BRIDGE_ALLOC_HOST_ACCESS_RANDOM)           out |= VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+    return out;
+}
+
 extern "C" VkResult vma_bridge_create_allocator(VkInstance instance,
                                                 VkPhysicalDevice physical,
                                                 VkDevice device,
@@ -56,11 +66,13 @@ extern "C" void vma_bridge_destroy_allocator(VmaBridgeAllocator a) noexcept {
 extern "C" VkResult vma_bridge_create_buffer(VmaBridgeAllocator a,
                                              const VkBufferCreateInfo* info,
                                              VmaBridgeUsage usage,
+                                             uint32_t flags,
                                              uint64_t* out_buffer,
                                              VmaBridgeAllocation* out_alloc) noexcept {
     try {
         VmaAllocationCreateInfo aci = {};
         aci.usage = to_vma_usage(usage);
+        aci.flags = to_vma_flags(flags);
         VkBuffer buf = VK_NULL_HANDLE;
         VmaAllocation allocation = nullptr;
         VkResult r = vmaCreateBuffer(reinterpret_cast<VmaAllocator>(a), info, &aci, &buf, &allocation, nullptr);
@@ -79,11 +91,13 @@ extern "C" void vma_bridge_destroy_buffer(VmaBridgeAllocator a, uint64_t buffer,
 extern "C" VkResult vma_bridge_create_image(VmaBridgeAllocator a,
                                             const VkImageCreateInfo* info,
                                             VmaBridgeUsage usage,
+                                            uint32_t flags,
                                             uint64_t* out_image,
                                             VmaBridgeAllocation* out_alloc) noexcept {
     try {
         VmaAllocationCreateInfo aci = {};
         aci.usage = to_vma_usage(usage);
+        aci.flags = to_vma_flags(flags);
         VkImage img = VK_NULL_HANDLE;
         VmaAllocation allocation = nullptr;
         VkResult r = vmaCreateImage(reinterpret_cast<VmaAllocator>(a), info, &aci, &img, &allocation, nullptr);
@@ -109,4 +123,36 @@ extern "C" VkResult vma_bridge_map_memory(VmaBridgeAllocator a, VmaBridgeAllocat
 
 extern "C" void vma_bridge_unmap_memory(VmaBridgeAllocator a, VmaBridgeAllocation alloc) noexcept {
     vmaUnmapMemory(reinterpret_cast<VmaAllocator>(a), reinterpret_cast<VmaAllocation>(alloc));
+}
+
+extern "C" void vma_bridge_get_allocation_info(VmaBridgeAllocator a,
+                                               VmaBridgeAllocation alloc,
+                                               uint32_t* out_memory_type,
+                                               uint64_t* out_device_memory,
+                                               uint64_t* out_offset,
+                                               uint64_t* out_size,
+                                               void** out_mapped) noexcept {
+    VmaAllocationInfo info = {};
+    vmaGetAllocationInfo(reinterpret_cast<VmaAllocator>(a), reinterpret_cast<VmaAllocation>(alloc), &info);
+    *out_memory_type = info.memoryType;
+    *out_device_memory = (uint64_t)(uintptr_t)info.deviceMemory;
+    *out_offset = info.offset;
+    *out_size = info.size;
+    *out_mapped = info.pMappedData;
+}
+
+extern "C" VkResult vma_bridge_flush_allocation(VmaBridgeAllocator a, VmaBridgeAllocation alloc, uint64_t offset, uint64_t size) noexcept {
+    try {
+        return vmaFlushAllocation(reinterpret_cast<VmaAllocator>(a), reinterpret_cast<VmaAllocation>(alloc), offset, size);
+    } catch (...) {
+        return VK_ERROR_UNKNOWN;
+    }
+}
+
+extern "C" VkResult vma_bridge_invalidate_allocation(VmaBridgeAllocator a, VmaBridgeAllocation alloc, uint64_t offset, uint64_t size) noexcept {
+    try {
+        return vmaInvalidateAllocation(reinterpret_cast<VmaAllocator>(a), reinterpret_cast<VmaAllocation>(alloc), offset, size);
+    } catch (...) {
+        return VK_ERROR_UNKNOWN;
+    }
 }

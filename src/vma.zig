@@ -77,6 +77,40 @@ pub const ImageResult = struct {
     allocation: *Allocation,
 };
 
+/// Allocation-create flags for `createBufferWithFlags`/`createImageWithFlags`.
+/// With `Usage.auto`, VMA needs one of the `host_access_*` bits to hand back
+/// host-visible (mappable) memory — set one when you intend to `mapMemory`.
+/// A stable bit layout owned by this library (the bridge maps it to VMA's).
+pub const Flags = packed struct(u32) {
+    /// Give the allocation its own `VkDeviceMemory` block (no suballocation).
+    dedicated_memory: bool = false,
+    /// Keep it persistently mapped — `getAllocationInfo().mapped_data` is then
+    /// valid for the allocation's lifetime (no `mapMemory`/`unmapMemory`).
+    mapped: bool = false,
+    /// CPU writes the memory sequentially (uploads). Picks an upload-friendly
+    /// memory type under `Usage.auto`.
+    host_access_sequential_write: bool = false,
+    /// CPU reads/writes randomly (readback or scratch). Picks host-cached
+    /// memory under `Usage.auto`.
+    host_access_random: bool = false,
+    _reserved: u28 = 0,
+};
+
+/// Where an allocation actually lives — from `getAllocationInfo`. `mapped_data`
+/// is non-null only when the allocation was created with `Flags.mapped`.
+pub const AllocationInfo = struct {
+    /// Index into the device's memory types (`VkPhysicalDeviceMemoryProperties`).
+    memory_type: u32,
+    /// The `VkDeviceMemory` block backing it (allocations may suballocate it).
+    device_memory: vk.DeviceMemory,
+    /// Byte offset of this allocation within `device_memory`.
+    offset: u64,
+    /// Size of the allocation in bytes (≥ the requested size).
+    size: u64,
+    /// Persistent mapping pointer, or `null` if not `Flags.mapped`.
+    mapped_data: ?[*]u8,
+};
+
 // -- C-ABI bridge (src/c/vma_bridge.cpp) -------------------------------------
 // Dispatchable handles cross as opaque pointers; non-dispatchable as u64 (the
 // bridge is built with VK_USE_64_BIT_PTR_DEFINES=0); create-infos are passed
@@ -84,12 +118,15 @@ pub const ImageResult = struct {
 
 extern fn vma_bridge_create_allocator(instance: ?*anyopaque, physical: ?*anyopaque, device: ?*anyopaque, api_version: u32, gipa: vk.PfnGetInstanceProcAddr, out: *?*Allocator) i32;
 extern fn vma_bridge_destroy_allocator(a: *Allocator) void;
-extern fn vma_bridge_create_buffer(a: *Allocator, info: *const vk.BufferCreateInfo, usage: c_int, out_buffer: *u64, out_alloc: *?*Allocation) i32;
+extern fn vma_bridge_create_buffer(a: *Allocator, info: *const vk.BufferCreateInfo, usage: c_int, flags: u32, out_buffer: *u64, out_alloc: *?*Allocation) i32;
 extern fn vma_bridge_destroy_buffer(a: *Allocator, buffer: u64, alloc: *Allocation) void;
-extern fn vma_bridge_create_image(a: *Allocator, info: *const vk.ImageCreateInfo, usage: c_int, out_image: *u64, out_alloc: *?*Allocation) i32;
+extern fn vma_bridge_create_image(a: *Allocator, info: *const vk.ImageCreateInfo, usage: c_int, flags: u32, out_image: *u64, out_alloc: *?*Allocation) i32;
 extern fn vma_bridge_destroy_image(a: *Allocator, image: u64, alloc: *Allocation) void;
 extern fn vma_bridge_map_memory(a: *Allocator, alloc: *Allocation, out_ptr: *?*anyopaque) i32;
 extern fn vma_bridge_unmap_memory(a: *Allocator, alloc: *Allocation) void;
+extern fn vma_bridge_get_allocation_info(a: *Allocator, alloc: *Allocation, out_memory_type: *u32, out_device_memory: *u64, out_offset: *u64, out_size: *u64, out_mapped: *?*anyopaque) void;
+extern fn vma_bridge_flush_allocation(a: *Allocator, alloc: *Allocation, offset: u64, size: u64) i32;
+extern fn vma_bridge_invalidate_allocation(a: *Allocator, alloc: *Allocation, offset: u64, size: u64) i32;
 
 /// Translate the bridge's `VkResult` into `Error` (or success). Uses
 /// vulkan-zig's `vk.Result` values, so there are no magic numbers.
@@ -132,9 +169,16 @@ pub fn destroyAllocator(allocator: *Allocator) void {
 /// Allocate memory and create a `vk.Buffer` in one call. `info` is a standard
 /// `VkBufferCreateInfo`; `usage` selects the memory type. *(since v0.3.0)*
 pub fn createBuffer(allocator: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage) Error!BufferResult {
+    return createBufferWithFlags(allocator, info, usage, .{});
+}
+
+/// Like `createBuffer`, but with explicit allocation `flags` (host-access,
+/// persistent `mapped`, dedicated memory). Needed to map `Usage.auto` memory.
+/// *(since v0.5.0)*
+pub fn createBufferWithFlags(allocator: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage, flags: Flags) Error!BufferResult {
     var buffer: u64 = 0;
     var alloc: ?*Allocation = null;
-    try check(vma_bridge_create_buffer(allocator, info, @intFromEnum(usage), &buffer, &alloc));
+    try check(vma_bridge_create_buffer(allocator, info, @intFromEnum(usage), @bitCast(flags), &buffer, &alloc));
     return .{ .buffer = @enumFromInt(buffer), .allocation = alloc.? };
 }
 
@@ -145,9 +189,15 @@ pub fn destroyBuffer(allocator: *Allocator, buffer: vk.Buffer, allocation: *Allo
 
 /// Allocate memory and create a `vk.Image` in one call. *(since v0.3.0)*
 pub fn createImage(allocator: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage) Error!ImageResult {
+    return createImageWithFlags(allocator, info, usage, .{});
+}
+
+/// Like `createImage`, but with explicit allocation `flags` (e.g.
+/// `.dedicated_memory` for render targets). *(since v0.5.0)*
+pub fn createImageWithFlags(allocator: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage, flags: Flags) Error!ImageResult {
     var image: u64 = 0;
     var alloc: ?*Allocation = null;
-    try check(vma_bridge_create_image(allocator, info, @intFromEnum(usage), &image, &alloc));
+    try check(vma_bridge_create_image(allocator, info, @intFromEnum(usage), @bitCast(flags), &image, &alloc));
     return .{ .image = @enumFromInt(image), .allocation = alloc.? };
 }
 
@@ -168,6 +218,38 @@ pub fn mapMemory(allocator: *Allocator, allocation: *Allocation) Error![*]u8 {
 /// Unmap a previously `mapMemory`'d allocation.
 pub fn unmapMemory(allocator: *Allocator, allocation: *Allocation) void {
     vma_bridge_unmap_memory(allocator, allocation);
+}
+
+/// Query where an allocation lives — its backing `VkDeviceMemory`, offset,
+/// size, and (for `Flags.mapped` allocations) the persistent mapped pointer.
+/// Cannot fail. *(since v0.5.0)*
+pub fn getAllocationInfo(allocator: *Allocator, allocation: *Allocation) AllocationInfo {
+    var memory_type: u32 = 0;
+    var device_memory: u64 = 0;
+    var offset: u64 = 0;
+    var size: u64 = 0;
+    var mapped: ?*anyopaque = null;
+    vma_bridge_get_allocation_info(allocator, allocation, &memory_type, &device_memory, &offset, &size, &mapped);
+    return .{
+        .memory_type = memory_type,
+        .device_memory = @enumFromInt(device_memory),
+        .offset = offset,
+        .size = size,
+        .mapped_data = if (mapped) |p| @ptrCast(p) else null,
+    };
+}
+
+/// Flush host writes to a range so the device sees them (no-op on
+/// host-coherent memory). Pass `vk.WHOLE_SIZE` for `size` to cover offset→end.
+/// *(since v0.5.0)*
+pub fn flushAllocation(allocator: *Allocator, allocation: *Allocation, offset: u64, size: u64) Error!void {
+    try check(vma_bridge_flush_allocation(allocator, allocation, offset, size));
+}
+
+/// Invalidate a range so the host sees device writes (no-op on host-coherent
+/// memory). Pass `vk.WHOLE_SIZE` for `size` to cover offset→end. *(since v0.5.0)*
+pub fn invalidateAllocation(allocator: *Allocator, allocation: *Allocation, offset: u64, size: u64) Error!void {
+    try check(vma_bridge_invalidate_allocation(allocator, allocation, offset, size));
 }
 
 test {
