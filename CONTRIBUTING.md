@@ -9,7 +9,7 @@ A **version-coherent** Vulkan stack — vulkan-zig + volk + VMA + shaderc bundle
 
 ## Maintainer stance
 
-- Validated on **Linux + Windows** first. macOS / Metal isn't something the maintainer will test until much later — but contributors are free to implement it; a clean, self-tested PR is welcome.
+- Validated on **Linux + Windows** first. macOS / Metal is **in scope, not deferred** — but the maintainer won't build or test it, so it's contributor-led: a clean, self-tested PR is welcome. The concrete piece is `createMetalSurface` (`vkCreateMetalSurfaceEXT` via MoltenVK, consuming a `CAMetalLayer` from the platform lib's `getCocoaHandle`). See the macOS row in [`docs/completion-plan.md`](docs/completion-plan.md).
 - Docs / link-rot / build-config PRs are welcome any time.
 
 ## The version-coherence rule — the whole point of this repo
