@@ -12,4 +12,5 @@ test {
     _ = @import("02_volk_test.zig");
     _ = @import("03_vma_test.zig");
     _ = @import("04_vma_advanced_test.zig");
+    _ = @import("05_shaderc_advanced_test.zig");
 }
