@@ -100,8 +100,8 @@ test "target: a higher Vulkan target emits a higher SPIR-V version word" {
 // =============================================================================
 
 const Includes = struct {
-    fn resolve(ctx: ?*anyopaque, requested: []const u8, requesting: []const u8) ?shaderc.IncludeResult {
-        _ = ctx;
+    fn resolve(context: ?*anyopaque, requested: []const u8, requesting: []const u8) ?shaderc.IncludeResult {
+        _ = context;
         _ = requesting;
         if (std.mem.eql(u8, requested, "common.glsl"))
             return .{ .name = "common.glsl", .content = "float value() { return 1.0; }\n" };
