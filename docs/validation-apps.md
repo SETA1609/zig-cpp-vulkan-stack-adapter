@@ -42,4 +42,4 @@ A non-empty result means a windowing symbol leaked across the boundary — fix i
 ## Notes
 
 - Apps depend on this library (and, for paired apps, a windowing layer such as the companion [platform-stack adapter](https://github.com/SETA1609/zig-cpp-platform-stack-adapter)) via pinned `build.zig.zon` entries — the same pattern a real consumer uses.
-- Every `extern "C"` bridge crossed here (VMA, shaderc) must stay `noexcept`.
+- The one `extern "C"` bridge crossed here (VMA — shaderc is a pure-Zig `@cImport`, no bridge) must stay `noexcept`.

@@ -21,24 +21,28 @@ VMA's headers, vulkan-zig's generated bindings, and shaderc's SPIR-V target **mu
 
 ## Test-first development
 
-The public API (`src/root.zig` + `volk.zig` / `vma.zig` / `shaderc.zig`) is a
-complete set of signatures whose bodies are `@panic("not implemented")` stubs
-(the `vk` re-export is the one already-real piece). Implementing the library
-means replacing a stub and proving it — by an automated test where the result is
-provable in-process, or by an e2e procedure where it needs a live GPU.
+The public API (`src/root.zig` + `volk.zig` / `vma.zig` / `shaderc.zig`) is
+almost entirely implemented: the `vk` re-export, the `volk` loader, the X11 +
+Wayland surface creators, VMA (incl. depth), and shaderc (incl. depth) are real.
+Only `createWin32Surface` / `createAndroidSurface` remain
+`@panic("not implemented")` stubs (see [`docs/completion-plan.md`](docs/completion-plan.md)).
+Implementing or extending the library means replacing/adding behind a stub and
+proving it — by an automated test where the result is provable in-process, or by
+an e2e procedure where it needs a live GPU.
 
 ### The two test steps
 
 | Step | File(s) | What it is | When it runs |
 | --- | --- | --- | --- |
 | `zig build test` | `src/tests/api_test.zig` | **Contract / data tests** — the real `vk` re-export, wrapper enum values, option defaults. Need no GPU. | **Gates CI** — must always be green. |
-| `zig build test-tdd` | `src/tests/tdd/*` | **Ordered red→green suite** — every test calls the real function and asserts its result, skipped behind a `done` flag until implemented. | Off CI. Green today (all skipped). |
+| `zig build test-tdd` | `src/tests/tdd/*` | **Ordered red→green suite** — every test calls the real function and asserts its result; each carries a `// WHEN … · GIVEN … · THEN …` spec. shaderc sessions need `-Dshaderc`; the VMA sessions need a live Vulkan device. | Off CI (needs a device / `-Dshaderc`). |
 
 ### Two kinds of work
 
-**1. Automated (shaderc) — has a TDD test.** `shaderc.compile` /
-`lastErrorMessage` are pure-CPU GLSL→SPIR-V: their result is fully verifiable
-with no GPU, instance, or device. They live in the TDD suite.
+**1. Automated (shaderc) — has a TDD test.** `shaderc.compile` (and its
+`*Diagnostics` failure path) is pure-CPU GLSL→SPIR-V: the result is fully
+verifiable with no GPU, instance, or device. It lives in the TDD suite
+(`01_shaderc_test.zig` + `05_shaderc_advanced_test.zig`, under `-Dshaderc`).
 
 **2. e2e (volk, surfaces, VMA) — has a manual procedure.** These return opaque
 Vulkan handles or mutate GPU state, only meaningful against a live
@@ -48,11 +52,11 @@ examples-repo Vulkan clear-color rung.
 
 ### The contributor workflow
 
-**For shaderc (automated):** implement `shaderc.compile` (then `lastErrorMessage`)
-in `src/shaderc.zig`; flip `done.compile` / `done.lastErrorMessage` in
-`src/tests/tdd/01_shaderc_test.zig` from `false` to `true`; run
-`zig build test-tdd -- --test-filter compile` until green, then the whole suite
-and `zig build test`; tick the box in `docs/manual-testing.md`.
+**For shaderc (automated):** add behavior in `src/shaderc.zig`, add a test with a
+`// WHEN … · GIVEN … · THEN …` spec to the matching session
+(`01_shaderc_test.zig` / `05_shaderc_advanced_test.zig`); run
+`zig build test-tdd -Dshaderc` until green, then the whole suite and
+`zig build test`; tick the box in `docs/manual-testing.md`.
 
 **For volk / surfaces / VMA (e2e):** implement the function(s) + bridge code;
 walk the matching procedure in `docs/manual-testing.md` (validation layers on)
@@ -62,8 +66,8 @@ A PR may implement **one or more** functions.
 
 ### Definition of done
 
-- **shaderc:** the `done.<fn>` flag is `true` and **every one of its TDD tests
-  passes** — not skipped, not commented out.
+- **shaderc:** **every one of its TDD tests passes** under `-Dshaderc` — not
+  skipped, not commented out.
 - **volk / surfaces / VMA:** the e2e procedure passes with **zero validation
   errors**, and the headless-Vulkan `nm` decoupling check (zero
   `SDL_`/`x11`/`wayland` symbols, `docs/manual-testing.md`) holds.
@@ -76,10 +80,10 @@ test encodes the wrong contract, fix the test in the same PR and say so.
 
 | # | Area | Functions | Kind | Milestone | Depends on |
 | --- | --- | --- | --- | --- | --- |
-| 1 | shaderc | `compile` · `lastErrorMessage` | **TDD** (`01_shaderc_test.zig`) | v0.4.0 | — |
+| 1 | shaderc | `compile` (+ macros / `target` / `#include` / RT + mesh stages) · `Diagnostics` | **TDD** (`01_`/`05_shaderc*_test.zig`) | v0.4.0 | — |
 | 2 | volk | `loadBase` · `loadInstance` · `loadDevice` | e2e (`manual-testing.md` §1) | v0.2.0 | a Vulkan loader |
-| 3 | surfaces | `createX11Surface` · `createWaylandSurface` · `createWin32Surface` · `createAndroidSurface` | e2e (§2) | v0.2.0 / v0.5.0 | 2, a window handle |
-| 4 | VMA | `createAllocator`/`destroyAllocator` · `createBuffer`/`destroyBuffer` · `createImage`/`destroyImage` · `mapMemory`/`unmapMemory` | e2e (§3) | v0.3.0 | 2, a `VkDevice` |
+| 3 | surfaces | `createX11Surface` · `createWaylandSurface` (real) · `createWin32Surface` · `createAndroidSurface` (stubbed) | e2e (§2) | v0.2.0 / v0.5.0 | 2, a window handle |
+| 4 | VMA | `createAllocator`/`destroyAllocator` · `createBuffer(WithFlags)`/`destroyBuffer` · `createImage(WithFlags)`/`destroyImage` · `mapMemory`/`unmapMemory` · `getAllocationInfo` · `flush`/`invalidateAllocation` | e2e (§3) + **TDD** (`03_`/`04_vma*_test.zig`, needs a device) | v0.3.0 / v0.5.0 | 2, a `VkDevice` |
 
 (The `vk` re-export is real from v0.1.0 and already covered by `zig build test`.)
 The surface section is the **cross-library** test — it consumes the native
@@ -92,7 +96,7 @@ Much of this library's backend is C/C++ by nature — VMA is header-only **C++**
 shaderc ships a **C** API, volk is a **C** loader. You are free to use C and C++
 for that code, but it stays **behind the Zig API**:
 
-- Every `extern "C"` boundary function (VMA, shaderc bridges) is **`noexcept`** and **catches all exceptions before they cross the C ABI**.
+- Every `extern "C"` boundary function (the VMA bridge — shaderc needs none, it ships a C API consumed via `@cImport`) is **`noexcept`** and **catches all exceptions before it crosses the C ABI**.
 - **No C++ type (class / template / `std::*`) crosses the boundary** — the Zig wrappers (`src/vma.zig`, `src/shaderc.zig`) own the idiomatic surface.
 - **C++ style: Google conventions, max C++23.** Already encoded in [`.clang-format`](.clang-format) (`BasedOnStyle: Google`, `Standard: c++23`). Run `clang-format`; do not use language features past C++23.
 - **Smart pointers first, manual pointers later — in separate PRs.** Write the initial bridge with RAII / smart pointers (`std::unique_ptr`, `std::shared_ptr`) so ownership is obviously correct, and land that. If profiling later shows a smart-pointer is a real cost on a hot path, move it to a manual / raw pointer **in a follow-up PR** dedicated to that optimization, with the measurement that justifies it. Correctness first, optimization second, never mixed in one PR.

@@ -40,7 +40,7 @@ A single Zig package that gives you the full Vulkan stack with idiomatic Zig typ
 - **`vk`** — [vulkan-zig](https://github.com/Snektron/vulkan-zig)'s bindings, re-exported as-is. Typed enums, error sets, comptime dispatch — no C-ABI tax.
 - **`vma`** — GPU memory allocator (VMA) behind a `noexcept` `extern "C"` bridge, surfaced as idiomatic Zig.
 - **`volk`** — Vulkan loader, implemented in **pure Zig** (`std.DynLib` dynamically opens `libvulkan` and resolves `vkGetInstanceProcAddr`). `getInstanceProcAddr()` then feeds vulkan-zig's `vk.BaseWrapper`/`InstanceWrapper`/`DeviceWrapper`, which own the typed dispatch — so the binary doesn't hard-link `libvulkan`, and there's no vendored C loader to keep version-coherent.
-- **`shaderc`** — GLSL→SPIR-V, behind a `noexcept` `extern "C"` bridge.
+- **`shaderc`** — GLSL→SPIR-V, a pure-Zig `@cImport` wrapper over shaderc's C API (no C++ bridge), built from source by `tiawl/shaderc.zig` and opt-in under `-Dshaderc`.
 - **Per-OS surface creators** — `createX11Surface` / `createWaylandSurface` / `createWin32Surface` / `createAndroidSurface`, each taking raw OS primitives (no windowing-library import).
 
 ## Why bundled — version coherence
@@ -101,4 +101,4 @@ So this library works with **any** window source — the companion platform adap
 
 ## C++ boundary discipline
 
-Every `extern "C"` bridge function (VMA, shaderc) is `noexcept` and catches all exceptions before they cross the C ABI. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+VMA is the only C++↔Zig boundary: its `extern "C"` bridge functions are `noexcept` and catch all exceptions before they cross the C ABI. shaderc ships a C API and is consumed directly via `@cImport` — no bridge. See [`CONTRIBUTING.md`](CONTRIBUTING.md).

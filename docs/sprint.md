@@ -6,6 +6,9 @@
 
 Each `[ ]` is one atomic commit (Conventional Commits, subject ≤ 72 chars).
 
+> **Historical plan — execution diverged on three points** (see [`ROADMAP.md`](ROADMAP.md) / [`completion-plan.md`](completion-plan.md) for the current state):
+> the surface code lives in `src/root.zig`, **not** a separate `src/surface.zig`; **Wayland** shipped in v0.2.0 alongside X11 (Win32/Android are the remaining stubs); and **shaderc has no C++ bridge** — it is a pure-Zig `@cImport` over shaderc's C API, built from source by `tiawl/shaderc.zig` under `-Dshaderc` (so "§ D / V4.1 vendor shaderc + `shaderc_bridge.{h,cpp}`" did not happen). VMA depth and shaderc depth (macros, target, `#include`, RT/mesh stages) landed after v0.4.0.
+
 ## § A — v0.1.0: vk re-export
 
 - [ ] **V1.1** `build.zig.zon`: add [vulkan-zig](https://github.com/Snektron/vulkan-zig) as a pinned dependency.
