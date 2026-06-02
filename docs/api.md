@@ -115,12 +115,33 @@ branch on `available` to choose runtime compilation vs. embedded SPIR-V. See
 ```zig
 pub const available: bool;   // true when built with -Dshaderc
 
-pub const Stage = enum { vertex, fragment, compute, geometry, tess_control, tess_eval };
+pub const Stage = enum {
+    vertex, fragment, compute, geometry, tess_control, tess_eval,
+    raygen, any_hit, closest_hit, miss, intersection, callable, // ray tracing
+    task, mesh,                                                  // mesh pipeline
+};
+
+// Vulkan environment to target — drives the emitted SPIR-V version and gates
+// ray-tracing / mesh features.
+pub const SpirvVersion = enum { vulkan_1_0, vulkan_1_1, vulkan_1_2, vulkan_1_3 };
+
+// A `-D` macro; `value == null` is a bare `#define NAME`.
+pub const Macro = struct { name: []const u8, value: ?[]const u8 = null };
+
+// `#include` resolution. `resolve` returns the source, or null if not found.
+pub const IncludeResult = struct { name: []const u8, content: []const u8 };
+pub const Includer = struct {
+    ctx: ?*anyopaque = null,
+    resolve: *const fn (ctx: ?*anyopaque, requested: []const u8, requesting: []const u8) ?IncludeResult,
+};
 
 pub const CompileOptions = struct {
     optimize: enum { none, size, performance } = .performance,
     debug_info: bool = false,
     entry_point: [:0]const u8 = "main",
+    target: SpirvVersion = .vulkan_1_3,   // since v0.4.x
+    macros: []const Macro = &.{},         // since v0.4.x
+    includer: ?Includer = null,           // since v0.4.x
 };
 
 pub const Error = error{ ShaderCompilationFailed, OutOfMemory };
