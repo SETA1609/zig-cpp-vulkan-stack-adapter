@@ -12,7 +12,7 @@
 > registry for those, not this file.
 >
 > Generated from `src/`. Values are assigned in declaration order from `0`;
-> **append new fields at the end** to keep existing numbers stable. All three
+> **append new fields at the end** to keep existing numbers stable. All four
 > are closed enums backed by `u8`.
 
 ## Backing widths
@@ -21,6 +21,7 @@
 | --- | --- | --- |
 | `shaderc.Stage` | `src/shaderc.zig` | `u8` |
 | `shaderc.OptimizeLevel` | `src/shaderc.zig` | `u8` |
+| `shaderc.SpirvVersion` | `src/shaderc.zig` | `u8` |
 | `vma.Usage` | `src/vma.zig` | `u8` |
 
 ## Values
@@ -33,12 +34,26 @@
     "compute": 2,
     "geometry": 3,
     "tess_control": 4,
-    "tess_eval": 5
+    "tess_eval": 5,
+    "raygen": 6,
+    "any_hit": 7,
+    "closest_hit": 8,
+    "miss": 9,
+    "intersection": 10,
+    "callable": 11,
+    "task": 12,
+    "mesh": 13
   },
   "shaderc.OptimizeLevel": {
     "none": 0,
     "size": 1,
     "performance": 2
+  },
+  "shaderc.SpirvVersion": {
+    "vulkan_1_0": 0,
+    "vulkan_1_1": 1,
+    "vulkan_1_2": 2,
+    "vulkan_1_3": 3
   },
   "vma.Usage": {
     "auto": 0,

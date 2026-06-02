@@ -6,9 +6,9 @@
 
 1. **Re-export vulkan-zig as-is** — `pub const vk = @import("vulkan")`. Typed enums, error sets, comptime dispatch tables. No C-ABI tax.
 
-2. **Wrap the C++ libs behind `noexcept` `extern "C"` bridges, surfaced as idiomatic Zig** — `vk_stack.vma.createBuffer(...)`, `vk_stack.shaderc.compile(...)`. Every boundary function catches all exceptions before they cross the C ABI.
+2. **Surface the native libs as idiomatic Zig.** VMA is header-only C++, so it sits behind a `noexcept` `extern "C"` bridge that catches all exceptions before they cross the C ABI — `vk_stack.vma.createBuffer(...)`. shaderc ships a C API, so it needs no bridge: a pure-Zig `@cImport` wrapper (`vk_stack.shaderc.compile(...)`), opt-in under `-Dshaderc`.
 
-3. **volk loader** (`vk_stack.volk`) — pending the v0.2.0 review of whether vulkan-zig's own generated dispatch makes it redundant (see [`ROADMAP.md`](ROADMAP.md)).
+3. **volk loader** (`vk_stack.volk`) — resolved at v0.2.0: the loader *role* is reimplemented in **pure Zig** (`std.DynLib` opens `libvulkan`, resolves `vkGetInstanceProcAddr`) and feeds vulkan-zig's dispatch wrappers; `loadInstance`/`loadDevice` are no-ops (see [`ROADMAP.md`](ROADMAP.md)).
 
 4. **Per-OS surface creators** — `createX11Surface`/`createWaylandSurface`/`createWin32Surface`/`createAndroidSurface`, each taking raw OS primitives, **no windowing-library import**.
 

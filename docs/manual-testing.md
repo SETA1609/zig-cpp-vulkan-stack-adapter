@@ -2,7 +2,7 @@
 
 > The companion to the automated [`src/tests/tdd/`](../src/tests/tdd) suite.
 > The only function family that can be proven in-process is **shaderc**
-> (pure-CPU GLSL→SPIR-V — fully covered there; run `zig build test-tdd`).
+> (pure-CPU GLSL→SPIR-V — fully covered there; run `zig build test-tdd -Dshaderc`).
 > Everything else on this library returns an **opaque Vulkan handle** or mutates
 > **GPU state**, and is only meaningful against a **live Vulkan instance,
 > device, and (for surfaces) a real OS window**. Those functions are specified
@@ -14,27 +14,35 @@
 > procedure (`VK_LAYER_KHRONOS_validation`): a procedure only passes with **zero
 > validation errors**.
 
-## Coverage status — as of `aad92b9`
+## Coverage status
 
-What is **proven today**. The `vk` re-export is real from v0.1.0; every other
-function (shaderc, volk, surfaces, VMA) is still a `@panic("not implemented")`
-stub at this commit. Re-tick each box as its backend lands and the matching TDD
-test / e2e procedure passes; bump the commit hash in this heading when you do.
+What is **proven today**. The `vk` re-export, the **volk** loader, the **X11 +
+Wayland** surface creators, **VMA** (incl. depth: `getAllocationInfo`,
+`flushAllocation`/`invalidateAllocation`, allocation `Flags`), and **shaderc**
+(incl. depth: macros, target version, `#include`, ray-tracing + task/mesh
+stages) are implemented. Only `createWin32Surface` / `createAndroidSurface`
+remain `@panic("not implemented")`. The automated suites are green; the e2e
+procedures below still need a live-GPU sign-off pass.
 
 **Automated — `zig build test`** (contract/data, must stay green):
 
 - [x] `vk` re-export exposes the typed Vulkan API + dispatch wrappers
 - [x] Wrapper enum values + option defaults (`shaderc`/`vma`) (`src/tests/api_test.zig`)
 
-**Automated — `zig build test-tdd`** (red→green; all RED now):
+**Automated — `zig build test-tdd`** (each test carries a `// WHEN … · GIVEN … · THEN …` spec):
 
-- [ ] `shaderc.compile` — GLSL→SPIR-V for vertex/fragment/compute, optimize levels, debug info, invalid-source error
-- [ ] `shaderc.lastErrorMessage` — diagnostic present & stable after a failed compile
+- [x] `shaderc.compile` — GLSL→SPIR-V for vertex/fragment/compute, optimize levels, debug info, invalid-source error (`01_shaderc_test.zig`)
+- [x] `shaderc` failure diagnostics — a `*Diagnostics` sink is filled (owned) after a failed compile (`01_shaderc_test.zig`)
+- [x] `shaderc` depth — macros (`-D`), `target` SPIR-V version, `#include` resolution, ray-tracing + task/mesh `Stage`s (`05_shaderc_advanced_test.zig`)
+- [x] VMA core — `createAllocator`/`createBuffer`/`createImage`/`mapMemory` round-trip (`03_vma_test.zig`)
+- [x] VMA depth — `getAllocationInfo`, persistent `mapped`, `flushAllocation`/`invalidateAllocation`, `createBufferWithFlags`/`createImageWithFlags` (`04_vma_advanced_test.zig`)
 
-**Manual / e2e** (this document; all UNPROVEN now):
+(The VMA TDD sessions need a live Vulkan device; they run where one is present.)
+
+**Manual / e2e** (this document):
 
 - [ ] §1 volk: `loadBase` / `loadInstance` / `loadDevice`
-- [ ] §2 Surface creators: `createX11Surface` / `createWaylandSurface` / `createWin32Surface` / `createAndroidSurface`
+- [ ] §2 Surface creators: `createX11Surface` / `createWaylandSurface` (real) — `createWin32Surface` / `createAndroidSurface` still stubbed
 - [ ] §3 VMA: `createAllocator`/`destroyAllocator`, `createBuffer`/`destroyBuffer`, `createImage`/`destroyImage`, `mapMemory`/`unmapMemory` (incl. `gpu_only` map fails, leak gate)
 - [ ] §4 shaderc device-validity (SPIR-V → `vkCreateShaderModule` → pipeline draw)
 - [ ] §5 Cross-library integration (Vulkan clear-color: window → surface → swapchain → present + resize)
@@ -124,16 +132,28 @@ validation log.
 `destroyAllocator` must report **no leaked allocations**. That clean shutdown is
 the pass condition for the whole section.
 
+### 3a. VMA depth (v0.5.0)
+
+| API | Procedure | Pass criterion |
+| --- | --- | --- |
+| `getAllocationInfo` | Query a `.cpu_to_gpu` buffer's allocation. | Reports a non-null backing `device_memory` and a `size` ≥ the requested bytes; `mapped_data` is `null` unless created with `Flags.mapped`. |
+| `createBufferWithFlags` (persistent map) | Create an `.auto` buffer with `.{ .mapped = true, .host_access_sequential_write = true }`. | `getAllocationInfo().mapped_data` is non-null; writing through it then reading back returns the same bytes (no explicit `mapMemory`). |
+| `createImageWithFlags` (dedicated) | Create a `.gpu_only` image with `.{ .dedicated_memory = true }`. | Valid image; `getAllocationInfo().offset == 0` (its own `VkDeviceMemory` block). |
+| `flushAllocation` | After writing host memory, flush offset `0`…`vk.WHOLE_SIZE` (and a sub-range). | Returns without error; on non-coherent memory the device sees the writes. |
+| `invalidateAllocation` | Before reading device-written memory of a `host_access_random` allocation, invalidate the range. | Returns without error; the host then sees the device writes. |
+
 ## 4. shaderc — already automated
 
-`compile` and `lastErrorMessage` are pure-CPU and fully covered by
-[`src/tests/tdd/`](../src/tests/tdd) suite (`zig build test-tdd`). The
-only manual touch worth doing once the bridge lands:
+`compile` (incl. macros, target version, `#include` resolution, ray-tracing +
+task/mesh stages) and its `*Diagnostics` failure path are pure-CPU and fully
+covered by the [`src/tests/tdd/`](../src/tests/tdd) suite — `01_shaderc_test.zig`
++ `05_shaderc_advanced_test.zig` (`zig build test-tdd -Dshaderc`). Manual touches
+worth doing once on a real device:
 
 | Check | Procedure | Pass criterion |
 | --- | --- | --- |
 | End-to-end shader use | Compile a real vertex+fragment pair, feed the SPIR-V to `vkCreateShaderModule`, build a pipeline, draw. | The pipeline links and renders — proves the emitted SPIR-V is **device-valid**, not just magic-word-valid. |
-| `#include` / resource limits | If `compile` later grows include resolution, compile a shader with an `#include`. | Resolves and compiles; missing include reports via `lastErrorMessage`. |
+| `#include` resolution | Compile a shader with an `#include`, supplying a `CompileOptions.includer`. | Resolves and compiles; a missing include fails with `error.ShaderCompilationFailed` and the `*Diagnostics` message names it. |
 
 ## 5. Cross-library integration (the real target)
 

@@ -77,8 +77,8 @@ Two ideas underpin everything:
 | `volk.loadBase()` | `std.DynLib` opens `libvulkan` and resolves `vkGetInstanceProcAddr` (pure Zig — no vendored C). |
 | `volk.getInstanceProcAddr()` | Hands that bootstrap pointer to `vk.BaseWrapper.load` / `InstanceWrapper.load` — the bridge between dynamic loading and vulkan-zig's dispatch. |
 | `createX11Surface` / `createWaylandSurface` | Loads the one `vkCreate*SurfaceKHR` via the proc-addr and builds the vulkan-zig create-info from **raw OS primitives** (no windowing import). |
-| `vma.*` | Idiomatic Zig over VMA's C++ via a `noexcept` `extern "C"` bridge *(landing v0.3.0)*. |
-| `shaderc.compile` | GLSL source → SPIR-V words *(landing v0.4.0)*. |
+| `vma.*` | Idiomatic Zig over VMA's C++ via a `noexcept` `extern "C"` bridge *(real, v0.3.0; depth in v0.5.0)*. |
+| `shaderc.compile` | GLSL source → SPIR-V words — pure-Zig `@cImport`, opt-in under `-Dshaderc` *(real, v0.4.0)*. |
 
 ## Gotchas
 
