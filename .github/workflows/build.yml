@@ -76,29 +76,8 @@ jobs:
           use-cache: true
       - run: bash scripts/ci.sh shaderc
 
-  # Runs the device-dependent test-tdd suite (volk + VMA) and, via -Dshaderc, the
-  # shaderc sessions, against Mesa's lavapipe **software** Vulkan ICD — no GPU,
-  # and headless (the harness makes no window/surface). Best-effort: lavapipe's
-  # advertised Vulkan version varies by runner image and the harness requests 1.3;
-  # promote to a required check once proven stable.
-  device-tests:
-    name: device tests (lavapipe)
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    env:
-      VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install lavapipe (software Vulkan) + loader
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mesa-vulkan-drivers libvulkan1 vulkan-tools
-      - name: Install Zig
-        uses: mlugg/setup-zig@v2
-        with:
-          version: 0.16.0
-          use-cache: true
-      - name: Vulkan sanity (is lavapipe visible?)
-        run: vulkaninfo --summary || true
-      - name: test-tdd against lavapipe (+ shaderc)
-        run: bash scripts/ci.sh device-tests
+  # The device-dependent test-tdd suite (volk + VMA) needs a real Vulkan device,
+  # which GitHub runners don't have. It's verified locally (real GPU) or in the
+  # dev container — `bash scripts/ci.sh device-tests`. A software ICD (lavapipe)
+  # is too runner-image-fragile (it must advertise the 1.3 the harness requests),
+  # so it's deliberately not a CI job.
