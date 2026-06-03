@@ -51,6 +51,7 @@ pub fn build(b: *std.Build) void {
     // pinned Vulkan-Headers dep used for vk.xml; VMA loads Vulkan entry points
     // dynamically (we don't hard-link libvulkan — see the volk loader).
     const vk_headers = b.dependency("vulkan_headers", .{});
+    const vma = b.dependency("vma", .{}); // header-only VMA, pinned in build.zig.zon (no submodule)
     const vma_bridge_mod = b.createModule(.{
         .target = target,
         .optimize = optimize,
@@ -58,7 +59,7 @@ pub fn build(b: *std.Build) void {
     });
     vma_bridge_mod.link_libcpp = true;
     vma_bridge_mod.addIncludePath(b.path("src/c"));
-    vma_bridge_mod.addIncludePath(b.path("vendor/VMA/include"));
+    vma_bridge_mod.addIncludePath(vma.path("include"));
     vma_bridge_mod.addIncludePath(vk_headers.path("include"));
     vma_bridge_mod.addCSourceFile(.{
         .file = b.path("src/c/vma_bridge.cpp"),
