@@ -1,0 +1,7 @@
+# Keep build caches, outputs, and git metadata out of the image.
+.zig-cache
+zig-out
+**/.zig-cache
+**/zig-out
+.git
+**/.git
