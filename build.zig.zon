@@ -23,10 +23,11 @@
     //                      re-exported by src/root.zig (see build.zig).
     //   - vulkan_headers — KhronosGroup/Vulkan-Headers: supplies the
     //                      `registry/vk.xml` that vulkan-zig generates from.
-    // Still to come as the bundled libs go from stub → real (see ROADMAP):
-    //   - VMA     (vendored submodule, src/c/vma_bridge) at v0.3.0
-    //   - volk    (vendored submodule)                   at v0.2.0
-    //   - shaderc (vendored submodule)                   at v0.4.0
+    //   - vma            — GPUOpen VulkanMemoryAllocator: header-only C++,
+    //                      compiled by src/c/vma_bridge.cpp (pinned by commit).
+    //   - shaderc_zig    — tiawl/shaderc.zig: GLSL→SPIR-V built from source.
+    //                      Lazy — only fetched/built under `-Dshaderc`.
+    // (volk needs no dependency — the loader is reimplemented in pure Zig.)
     .dependencies = .{
         .vulkan = .{
             .url = "git+https://github.com/Snektron/vulkan-zig.git#b496a6a561ffbbeb530b0f9ed4e059f88c0723a5",
@@ -43,6 +44,10 @@
             .url = "git+https://github.com/tiawl/shaderc.zig?ref=zig-0.16.0#7a2c31e137fb2f83fd0384e808e303950e97b157",
             .hash = "shaderc_zig-1.0.0-mOl84-RfAwDpatEtgzDFe0Nc1iNg-AECkBQYb6LnHvwG",
             .lazy = true,
+        },
+        .vma = .{
+            .url = "git+https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator#1d8f600fd424278486eade7ed3e877c99f0846b1",
+            .hash = "N-V-__8AAIutPgABk6NlXZhlJ5P8qVECvakZIKoO94h7xUOw",
         },
     },
     .paths = .{

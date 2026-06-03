@@ -37,7 +37,7 @@ Each `[ ]` is one atomic commit (Conventional Commits, subject ≤ 72 chars).
 
 ## § C — v0.3.0: VMA
 
-- [ ] **V3.1** Vendor VMA under `vendor/VMA/` (submodule); `src/c/vma_bridge.{h,cpp}` — `extern "C"` bridge, every boundary fn `noexcept` and catching before crossing the C ABI.
+- [ ] **V3.1** Add VMA as a pinned `build.zig.zon` dependency (header-only); `src/c/vma_bridge.{h,cpp}` — `extern "C"` bridge, every boundary fn `noexcept` and catching before crossing the C ABI.
   - Commit: `feat(vma): extern C bridge over VulkanMemoryAllocator`
 
 - [ ] **V3.2** `src/vma.zig`: idiomatic Zig wrapper — `createBuffer` / `createImage` / `destroyBuffer` + allocator lifecycle.
