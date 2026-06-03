@@ -114,8 +114,10 @@ for that code, but it stays **behind the Zig API**:
 
 ## Dev setup
 
-- **Zig 0.16+**; `zig build`, `zig build test` (contract suite), `zig build test-tdd` (red→green TDD suite).
-- Lint: `zig fmt --check .` + `clang-format --dry-run -Werror` on `src/c`. CI runs these.
+- **Zig 0.16+**; `zig build`, `zig build test` (contract suite), `zig build test-tdd` (red→green TDD suite — needs a Vulkan device + `-Dshaderc` for the shaderc sessions).
+- **`./scripts/ci.sh [check|clang-format|shaderc|device-tests]`** runs the CI gates locally; the workflow just installs the toolchain / ICD and calls this same script.
+- **Reproducible container:** `docker build -t vk-stack .` then `docker run --rm vk-stack` runs the gate in a clean image; `docker run --rm vk-stack bash scripts/ci.sh device-tests` runs the volk/VMA suite against lavapipe (software Vulkan — no GPU).
+- Lint: `zig fmt --check .` + `clang-format-18 --dry-run -Werror` on `src/c` (the `.clang-format` `Standard: Latest` needs clang-format-18). CI runs these, plus a `lint-workflows` job that validates the workflow YAML with the bundled [`check-workflows` skill](.claude/skills/check-workflows).
 
 ## Commits & PRs
 
