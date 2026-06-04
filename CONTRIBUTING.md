@@ -82,8 +82,9 @@ test encodes the wrong contract, fix the test in the same PR and say so.
 | --- | --- | --- | --- | --- | --- |
 | 1 | shaderc | `compile` (+ macros / `target` / `#include` / RT + mesh stages) · `Diagnostics` | **TDD** (`01_`/`05_shaderc*_test.zig`) | v0.4.0 | — |
 | 2 | volk | `loadBase` · `loadInstance` · `loadDevice` | e2e (`manual-testing.md` §1) | v0.2.0 | a Vulkan loader |
-| 3 | surfaces | `createX11Surface` · `createWaylandSurface` (real) · `createWin32Surface` · `createAndroidSurface` (stubbed) | e2e (§2) | v0.2.0 / v0.5.0 | 2, a window handle |
+| 3 | surfaces | `createX11Surface` · `createWaylandSurface` (real) · `createWin32Surface` · `createAndroidSurface` (stubbed) | e2e (§2) + **TDD** (`06_surface_win32_android_test.zig`, wiring/type checks) | v0.2.0 / v0.5.0 | 2, a window handle |
 | 4 | VMA | `createAllocator`/`destroyAllocator` · `createBuffer(WithFlags)`/`destroyBuffer` · `createImage(WithFlags)`/`destroyImage` · `mapMemory`/`unmapMemory` · `getAllocationInfo` · `flush`/`invalidateAllocation` | e2e (§3) + **TDD** (`03_`/`04_vma*_test.zig`, needs a device) | v0.3.0 / v0.5.0 | 2, a `VkDevice` |
+| 5 | swapchain | `Swapchain.create`/`deinit`/`recreate`/`toRaw`/`buildCreateInfo` (+ `Options`/`Raw`/`Error`) | **TDD** (`07_swapchain_test.zig`, options/policy + bridge) + e2e (§5, the create path needs a device) | v0.6.0 | 2, a `VkDevice` + surface |
 
 (The `vk` re-export is real from v0.1.0 and already covered by `zig build test`.)
 The surface section is the **cross-library** test — it consumes the native

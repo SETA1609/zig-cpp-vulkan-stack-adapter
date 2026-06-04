@@ -22,7 +22,7 @@ Mark `[x]` only when the app **builds and runs correctly** — not merely compil
 | App | Needs | Validates | Windowing? |
 | --- | --- | --- | --- |
 | **Headless triangle → PPM** | v0.3.0 + v0.4.0 | Proves the library is **fully standalone**: instance (no surface) → device → offscreen framebuffer → VMA buffer → shaderc shader → readback → PPM. No windowing dependency at all. | none |
-| **Reactive clear-color** | + a windowing lib | `vk` instance + a per-OS surface creator (fed a native handle from your windowing layer) → swapchain → per-frame clear → present; swapchain-recreate on resize. The key proof the surface handoff works end to end. | yes |
+| **Reactive clear-color** | + a windowing lib | `vk` instance + a per-OS surface creator (fed a native handle from your windowing layer) → swapchain → per-frame clear → present; swapchain-recreate on resize. The key proof the surface handoff works end to end. The swapchain step may use the raw `vk` path **or** the optional v0.6 `Swapchain` helper. | yes |
 | **Snake** | + a windowing lib | VMA vertex/index buffer (one quad), push-constant for per-cell color/position, ortho projection, the full present loop. (precompiled SPIR-V is fine — defer shaderc) | yes |
 | **Breakout** | + a windowing lib | Many quads at once → instancing / batching throughput through VMA. Catches allocation-churn or descriptor issues a single quad won't. | yes |
 | **Conway's Life** | + a windowing lib | A genuine fragment/compute shader + large dynamic buffer churn. The best shaderc stress test (needs v0.4.0). | yes |

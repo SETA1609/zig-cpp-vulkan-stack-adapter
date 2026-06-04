@@ -87,6 +87,12 @@ on `shaderc.available`; without it, embed precompiled SPIR-V (`@embedFile` a
 resolution, and the ray-tracing + mesh stages. See
 [`shaderc-distribution.md`](shaderc-distribution.md).
 
+The optional **`vk_stack.Swapchain`** helper (v0.6.0) — format / present-mode /
+extent defaults from the surface caps plus `recreate`, with `toRaw` /
+`buildCreateInfo` escape hatches back to raw `vk` — is **stubbed
+(`@panic`)** today; raw swapchain creation via `vkd.createSwapchainKHR` always
+works and is never blocked by it.
+
 Still `@panic("not implemented")` — **don't call yet**: the **Win32 / Android**
 surface creators (and there is no Metal surface yet — macOS is contributor-led).
 See [`ROADMAP.md`](ROADMAP.md).

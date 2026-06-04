@@ -20,6 +20,8 @@ pub const volk    = @import("volk.zig");    // loader                          (
 pub const vma     = @import("vma.zig");      // GPU allocator                  (since v0.3.0)
 pub const shaderc = @import("shaderc.zig"); // GLSL → SPIR-V                    (since v0.4.0)
 // per-OS surface creators live at module root too                            (since v0.2.0)
+pub const Swapchain      = @import("swapchain.zig").Swapchain; // opt-in helper (since v0.6.0)
+pub const SwapchainError = @import("swapchain.zig").Error;     // its error set (since v0.6.0)
 ```
 
 ## `vk` — Vulkan bindings  *(since v0.1.0)*
@@ -48,6 +50,61 @@ pub fn createX11Surface(instance: vk.Instance, display: *anyopaque, window: u64)
 pub fn createWin32Surface(instance: vk.Instance, hinstance: *anyopaque, hwnd: *anyopaque) SurfaceError!vk.SurfaceKHR;
 pub fn createWaylandSurface(instance: vk.Instance, display: *anyopaque, surface: *anyopaque) SurfaceError!vk.SurfaceKHR;  // since v0.5.0
 pub fn createAndroidSurface(instance: vk.Instance, window: *anyopaque) SurfaceError!vk.SurfaceKHR;                         // since v0.5.0
+```
+
+## `Swapchain` — opt-in swapchain helper  *(since v0.6.0)*
+
+A **two-tier** convenience over the raw `vk` swapchain API. The raw path is
+**never blocked** — `vkd.createSwapchainKHR` stays first-class, and this module
+tree-shakes away when unreferenced. **No helper type appears in a raw signature**:
+the bridge methods hand back plain `vk` objects so a consumer can drop to raw at
+any boundary.
+
+- **Beginner tier** — `create` picks a sane format / present mode / image count /
+  extent from the surface's reported capabilities, makes the `VkSwapchainKHR` and
+  one image view per image, and `recreate`s on resize / `error.OutOfDateKHR`.
+- **Pro tier** — `buildCreateInfo` computes a good `vk.SwapchainCreateInfoKHR`
+  from the same policy **without creating anything**, so a consumer drives Vulkan
+  itself; `toRaw` exposes the underlying handle, images, views, and create-info.
+
+```zig
+pub const Error = error{ OutOfHostMemory, OutOfDeviceMemory, DeviceLost, SurfaceLost, OutOfMemory, SwapchainCreationFailed };
+
+pub const Swapchain = struct {
+    handle: vk.SwapchainKHR,
+    format: vk.SurfaceFormatKHR,
+    present_mode: vk.PresentModeKHR,
+    extent: vk.Extent2D,
+    images: []vk.Image,
+    views: []vk.ImageView,
+
+    // Consumer preferences — every field is a *wish*, clamped against surface caps.
+    pub const Options = struct {
+        preferred_format: vk.SurfaceFormatKHR = .{ .format = .b8g8r8a8_srgb, .color_space = .srgb_nonlinear_khr },
+        preferred_present_mode: vk.PresentModeKHR = .mailbox_khr, // falls back to .fifo_khr
+        desired_image_count: u32 = 0,                             // 0 → minImageCount + 1 (clamped)
+        fallback_extent: vk.Extent2D = .{ .width = 800, .height = 600 }, // used when currentExtent == 0xFFFF_FFFF
+    };
+
+    // The raw objects behind the abstraction — escape hatch for driving Vulkan directly.
+    pub const Raw = struct {
+        handle: vk.SwapchainKHR,
+        images: []const vk.Image,
+        views: []const vk.ImageView,
+        create_info: vk.SwapchainCreateInfoKHR,
+    };
+
+    // Beginner tier: choose policy from surface caps, create swapchain + views. Caller owns it.
+    pub fn create(gpa: std.mem.Allocator, vki: vk.InstanceWrapper, vkd: vk.DeviceWrapper, physical: vk.PhysicalDevice, device: vk.Device, surface: vk.SurfaceKHR, options: Options) Error!Swapchain;
+    // Destroy the image views and the swapchain, freeing the owned slices.
+    pub fn deinit(self: *Swapchain, gpa: std.mem.Allocator, vkd: vk.DeviceWrapper, device: vk.Device) void;
+    // Recreate after a resize / error.OutOfDateKHR, reusing the old swapchain as oldSwapchain.
+    pub fn recreate(self: *Swapchain, gpa: std.mem.Allocator, vki: vk.InstanceWrapper, vkd: vk.DeviceWrapper, physical: vk.PhysicalDevice, device: vk.Device, surface: vk.SurfaceKHR) Error!void;
+    // Bridge: the raw handle, images, views, and the exact create-info used.
+    pub fn toRaw(self: Swapchain) Raw;
+    // Pro tier: compute a vk.SwapchainCreateInfoKHR from the same policy, creating nothing.
+    pub fn buildCreateInfo(vki: vk.InstanceWrapper, physical: vk.PhysicalDevice, surface: vk.SurfaceKHR, options: Options) Error!vk.SwapchainCreateInfoKHR;
+};
 ```
 
 ## `vma` — GPU memory allocator  *(since v0.3.0)*

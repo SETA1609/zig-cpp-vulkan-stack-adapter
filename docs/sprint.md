@@ -1,5 +1,11 @@
 # Milestone plan — v0.1.0 → v0.4.0
 
+> **Historical plan (v0.1–v0.4).** This is the original sprint that brought the
+> four bundled libs from stub → real. Current milestones — **v0.5.0** (Win32 /
+> Android surfaces) and **v0.6.0** (the opt-in `Swapchain` abstraction) — live in
+> [`completion-plan.md`](completion-plan.md) and [`ROADMAP.md`](ROADMAP.md); the
+> body below is kept for reference, not rewritten.
+
 > The plan to bring the four bundled libs from stub → real, across four tagged releases. By v0.4.0 a consumer can render with `vk_stack.{vk, volk, vma, shaderc}` + the per-OS surface creators. Roadmap: [`ROADMAP.md`](ROADMAP.md).
 >
 > **Definition of done (for the set):** `v0.1.0`–`v0.4.0` tagged; a consumer's surface bridge resolves and produces a non-null surface; `nm` on a Linux build shows no Windows/Android surface symbols; CI green on `x86_64-linux-gnu` + `x86_64-windows-gnu`.

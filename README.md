@@ -9,10 +9,11 @@ A standalone **Zig library** that bundles the Vulkan stack — [vulkan-zig](http
 > the **X11 + Wayland surface creators**, **VMA** (via a `noexcept` C++ bridge),
 > and **shaderc** (built from source by `tiawl/shaderc.zig`, opt-in under
 > **`-Dshaderc`** — see [`docs/shaderc-distribution.md`](docs/shaderc-distribution.md)).
-> Still `@panic("not implemented")`: the **Win32 / Android** surface creators —
-> see [`docs/ROADMAP.md`](docs/ROADMAP.md). Public error sets (`LoaderError` /
-> `SurfaceError` / `vma.Error` / `shaderc.Error`) are pinned. Calling a
-> not-yet-implemented function traps at runtime with a clear message.
+> Still `@panic("not implemented")`: the **Win32 / Android** surface creators and
+> the **`Swapchain` abstraction** (v0.6.0, the opt-in two-tier helper) — see
+> [`docs/ROADMAP.md`](docs/ROADMAP.md). Public error sets (`LoaderError` /
+> `SurfaceError` / `vma.Error` / `shaderc.Error` / `SwapchainError`) are pinned.
+> Calling a not-yet-implemented function traps at runtime with a clear message.
 
 ---
 
