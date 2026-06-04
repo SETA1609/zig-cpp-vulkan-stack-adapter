@@ -40,6 +40,15 @@ pub const vma = @import("vma.zig");
 /// GLSL → SPIR-V compilation (shaderc). *(since v0.4.0)*
 pub const shaderc = @import("shaderc.zig");
 
+/// Opt-in **swapchain abstraction** — a two-tier helper (beginner defaults +
+/// pro `buildCreateInfo`/`toRaw` bridge) over the raw `vk` swapchain API, which
+/// stays first-class and links with this unreferenced. See `swapchain.zig`.
+/// *(since v0.6.0)*
+pub const Swapchain = @import("swapchain.zig").Swapchain;
+
+/// Errors the `Swapchain` helper can return. *(since v0.6.0)*
+pub const SwapchainError = @import("swapchain.zig").Error;
+
 // =============================================================================
 // Surface creators  (since v0.2.0)
 // =============================================================================
