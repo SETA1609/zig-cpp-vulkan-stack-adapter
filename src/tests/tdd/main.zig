@@ -15,4 +15,5 @@ test {
     _ = @import("05_shaderc_advanced_test.zig");
     _ = @import("06_surface_win32_android_test.zig");
     _ = @import("07_swapchain_test.zig");
+    _ = @import("08_instance_test.zig");
 }
