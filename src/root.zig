@@ -49,6 +49,14 @@ pub const Swapchain = @import("swapchain.zig").Swapchain;
 /// Errors the `Swapchain` helper can return. *(since v0.6.0)*
 pub const SwapchainError = @import("swapchain.zig").Error;
 
+/// Opt-in **`Instance` bootstrap helper** — the first of the v0.7 `vk-bootstrap`-
+/// style helpers (api version + extension/layer policy over `vkb.createInstance`).
+/// Raw instance creation stays first-class; see `instance.zig`. *(since v0.7.0)*
+pub const Instance = @import("instance.zig").Instance;
+
+/// Errors the `Instance` helper can return. *(since v0.7.0)*
+pub const InstanceError = @import("instance.zig").Error;
+
 // =============================================================================
 // Surface creators  (since v0.2.0)
 // =============================================================================
