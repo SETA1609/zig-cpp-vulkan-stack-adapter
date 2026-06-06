@@ -34,6 +34,9 @@ jobs:
   build:
     name: build · ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    # macOS is contributor-led (the author has no mac hardware): visible but
+    # non-blocking, so a mac-only break never gates a merge.
+    continue-on-error: ${{ matrix.os == 'macos-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -76,8 +79,22 @@ jobs:
           use-cache: true
       - run: bash scripts/ci.sh shaderc
 
-  # The device-dependent test-tdd suite (volk + VMA) needs a real Vulkan device,
-  # which GitHub runners don't have. It's verified locally (real GPU) or in the
-  # dev container — `bash scripts/ci.sh device-tests`. A software ICD (lavapipe)
-  # is too runner-image-fragile (it must advertise the 1.3 the harness requests),
-  # so it's deliberately not a CI job.
+  # The device-dependent test-tdd suite (volk + VMA) on Mesa lavapipe (software
+  # Vulkan ICD). lavapipe's advertised version varies by runner image (the
+  # harness requests 1.3), so this is INFORMATIONAL (continue-on-error), not a
+  # hard gate — flip it once it's confirmed stable. Real-GPU verification still
+  # happens locally / in the dev container (`bash scripts/ci.sh device-tests`).
+  device-tests:
+    name: test-tdd (lavapipe Vulkan)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+          use-cache: true
+      - name: Install Vulkan loader + lavapipe (software ICD)
+        run: sudo apt-get update && sudo apt-get install -y libvulkan1 mesa-vulkan-drivers vulkan-tools
+      - run: bash scripts/ci.sh device-tests
