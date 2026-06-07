@@ -27,7 +27,7 @@ A standalone **Zig library** that bundles the Vulkan stack — [vulkan-zig](http
 - [`docs/api.md`](docs/api.md) — intended public API surface (signatures + semantics)
 - [`docs/enum-values.md`](docs/enum-values.md) — stable enum name→value maps (for serialization)
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — versioned milestones (v0.1.0 → v1.0.0)
-- [`docs/sprint.md`](docs/sprint.md) — current milestone plan
+- [`docs/completion-plan.md`](docs/completion-plan.md) — the path to v1.0
 - [`docs/validation-apps.md`](docs/validation-apps.md) — standalone test apps + completion checklist
 - [`docs/dependencies.md`](docs/dependencies.md) — consumed libraries + Zig/C/C++ language split
 - [`docs/cheat_sheet.md`](docs/cheat_sheet.md) — Zig/C/C++ cross-language field guide

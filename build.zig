@@ -9,7 +9,7 @@
 //! The one piece that is *real* today is the `vk` re-export: vulkan-zig's
 //! generator turns Khronos' `vk.xml` registry into Zig bindings at build time,
 //! and we expose that as the `vulkan` module which src/root.zig re-exports.
-//! Everything else in the module is a panic-on-call stub (see docs/sprint.md).
+//! Everything else in the module is a panic-on-call stub (see docs/completion-plan.md).
 
 const std = @import("std");
 

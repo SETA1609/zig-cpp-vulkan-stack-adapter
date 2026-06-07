@@ -13,7 +13,7 @@
 //!    `vk.xml` at build time and re-exported unchanged.
 //!  * `volk`, `vma`, `shaderc`, and the surface creators — `@panic`
 //!    stubs until their milestones land (see `docs/ROADMAP.md` /
-//!    `docs/sprint.md`). They compile and link so consumers can wire against
+//!    `docs/completion-plan.md`). They compile and link so consumers can wire against
 //!    the surface today; calling one traps at runtime with a clear message.
 //!
 //! ## Boundary discipline

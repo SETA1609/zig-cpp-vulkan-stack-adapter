@@ -1,6 +1,6 @@
 # Roadmap — zig-cpp-vulkan-stack-adapter
 
-> The versioned plan for this library, which bundles **vulkan-zig + volk + VMA + shaderc** version-pinned together. Sprint-level breakdown: [`sprint.md`](sprint.md).
+> The versioned plan for this library, which bundles **vulkan-zig + volk + VMA + shaderc** version-pinned together. Actionable breakdown: [`completion-plan.md`](completion-plan.md).
 >
 > **Why bundled:** VMA's headers embed specific Vulkan-1.x signatures, vulkan-zig's bindings come from a specific `vk.xml` snapshot, and shaderc emits SPIR-V for a specific Vulkan version — they must move together or you get cryptic runtime errors. One `build.zig.zon` enforces atomic version coherence.
 
@@ -68,5 +68,5 @@ VMA is the only C++↔Zig boundary: its `extern "C"` bridge functions are `noexc
 ## See also
 
 - Companion library: [zig-cpp-platform-stack-adapter](https://github.com/SETA1609/zig-cpp-platform-stack-adapter)
-- Sprint plan: [`sprint.md`](sprint.md) · Test apps: [`validation-apps.md`](validation-apps.md)
+- Path to 1.0: [`completion-plan.md`](completion-plan.md) · Test apps: [`validation-apps.md`](validation-apps.md)
 - Deeper design rationale: the catalog in the [zVoxRealms](https://github.com/SETA1609/zigVoxelWorlds) project (the engine this was built for).
