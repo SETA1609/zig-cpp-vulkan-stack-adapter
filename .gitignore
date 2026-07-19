@@ -39,8 +39,7 @@
 *.out
 *.app
 
-# Build directories
-build/
+# Build directories (build/*.zig are DAG source files, not build artifacts)
 Build/
 build-*/
 
