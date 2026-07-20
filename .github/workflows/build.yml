@@ -96,5 +96,5 @@ jobs:
           version: 0.16.0
           use-cache: true
       - name: Install Vulkan loader + lavapipe (software ICD)
-        run: sudo apt-get update && sudo apt-get install -y libvulkan1 mesa-vulkan-drivers vulkan-tools
+        run: python scripts/install_display_deps.py --vulkan-only
       - run: bash scripts/ci.sh device-tests

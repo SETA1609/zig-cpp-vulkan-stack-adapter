@@ -125,6 +125,17 @@ pub fn createAndroidSurface(instance: vk.Instance, window: *anyopaque) SurfaceEr
     @panic("not implemented");
 }
 
+/// Create a surface for a **macOS** Metal layer (`CAMetalLayer*` via
+/// MoltenVK's `VK_EXT_metal_surface`). `layer` is the `CAMetalLayer*`
+/// returned by the platform layer (`getCocoaHandle → SDL_Metal_GetLayer`).
+/// *(since v0.9.0)*
+pub fn createMetalSurface(instance: vk.Instance, layer: *anyopaque) SurfaceError!vk.SurfaceKHR {
+    const pfn = try surfacePfn(vk.PfnCreateMetalSurfaceEXT, instance, "vkCreateMetalSurfaceEXT");
+    const info = vk.MetalSurfaceCreateInfoEXT{ .p_layer = @ptrCast(layer) };
+    var surface: vk.SurfaceKHR = .null_handle;
+    return surfaceResult(pfn(instance, &info, null, &surface), surface);
+}
+
 test {
     // Force semantic analysis of this module's surface and the re-exports.
     @import("std").testing.refAllDecls(@This());
