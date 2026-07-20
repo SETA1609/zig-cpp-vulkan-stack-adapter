@@ -17,6 +17,7 @@
 //!
 //! - `-Dtarget=<triple>` — cross-compile target (default: host)
 //! - `-Doptimize=<mode>` — Debug / ReleaseFast / ReleaseSafe / ReleaseSmall
+//! - `-Dplatforms=<list>` — surface platforms: `x11`, `wayland`, `win32`, `android`, `metal` (space-separated, default: all)
 //! - `-Dshaderc` — include runtime GLSL→SPIR-V compilation (fetches + builds shaderc from source)
 
 const std = @import("std");

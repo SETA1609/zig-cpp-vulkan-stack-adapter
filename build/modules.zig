@@ -7,6 +7,18 @@
 
 const std = @import("std");
 
+/// Target platforms for Vulkan surface creation.
+/// Each variant maps to a `vkCreate*SurfaceKHR` extension.
+pub const Platform = enum(u3) {
+    x11,
+    wayland,
+    win32,
+    android,
+    metal,
+
+    pub const all = [_]Platform{ .x11, .wayland, .win32, .android, .metal };
+};
+
 pub const Modules = struct {
     vulkan_stack_mod: *std.Build.Module,
     vulkan_stack_lib: *std.Build.Step.Compile,
@@ -14,7 +26,21 @@ pub const Modules = struct {
     vk_headers: *std.Build.Dependency,
     vma_bridge_lib: *std.Build.Step.Compile,
     have_shaderc: bool,
+    platforms: []const Platform,
 };
+
+fn parsePlatforms(opt: []const u8, allocator: std.mem.Allocator) []const Platform {
+    if (std.mem.eql(u8, opt, "all")) return allocator.dupe(Platform, &Platform.all) catch @panic("OOM");
+    var list: std.ArrayList(Platform) = .empty;
+    errdefer list.deinit(allocator);
+    var it = std.mem.tokenizeScalar(u8, opt, ' ');
+    while (it.next()) |token| {
+        const p = std.meta.stringToEnum(Platform, token) orelse
+            std.debug.panic("Unknown platform '{s}'. Valid: x11, wayland, win32, android, metal", .{token});
+        list.append(allocator, p) catch @panic("OOM");
+    }
+    return list.toOwnedSlice(allocator) catch @panic("OOM");
+}
 
 pub fn create(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) Modules {
     const vk_mod = b.dependency("vulkan", .{
@@ -51,6 +77,12 @@ pub fn create(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bui
     });
     vulkan_stack_mod.linkLibrary(vma_bridge_lib);
 
+    // --- Platform selection --------------------------------------------------
+    const platform_opt = b.option([]const u8, "platforms",
+        "Target Vulkan surface platforms: x11, wayland, win32, android, metal (space-separated, default: all)") orelse "all";
+    const platforms = parsePlatforms(platform_opt, b.allocator);
+
+    // --- Shaderc (optional) --------------------------------------------------
     const enable_shaderc = b.option(bool, "shaderc", "Build runtime GLSL→SPIR-V (fetches + builds shaderc from source)") orelse false;
     var have_shaderc = false;
     if (enable_shaderc) {
@@ -60,10 +92,18 @@ pub fn create(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bui
             have_shaderc = true;
         }
     }
+
+    // --- Build config options that source code can query --------------------
     const build_config = b.addOptions();
+    inline for (@typeInfo(Platform).@"enum".fields) |field| {
+        const p: Platform = @enumFromInt(field.value);
+        const enabled = for (platforms) |ep| { if (ep == p) break true; } else false;
+        build_config.addOption(bool, b.fmt("platform_{s}", .{field.name}), enabled);
+    }
     build_config.addOption(bool, "have_shaderc", have_shaderc);
     vulkan_stack_mod.addOptions("build_config", build_config);
 
+    // --- Static library artifact --------------------------------------------
     const vulkan_stack_lib = b.addLibrary(.{
         .name = "vulkan_stack",
         .linkage = .static,
@@ -78,5 +118,6 @@ pub fn create(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bui
         .vk_headers = vk_headers,
         .vma_bridge_lib = vma_bridge_lib,
         .have_shaderc = have_shaderc,
+        .platforms = platforms,
     };
 }

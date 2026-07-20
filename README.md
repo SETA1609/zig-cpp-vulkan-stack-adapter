@@ -119,6 +119,7 @@ The build follows a three-tier DAG pattern shared with the sibling libraries:
 
 - `-Dtarget=<triple>` — cross-compile target (default: host)
 - `-Doptimize=<mode>` — Debug / ReleaseFast / ReleaseSafe / ReleaseSmall
+- `-Dplatforms=<list>` — surface platforms to compile: `x11`, `wayland`, `win32`, `android`, `metal` (space-separated, default: all)
 - `-Dshaderc` — include runtime GLSL→SPIR-V compilation (fetches + builds shaderc from source)
 
 ## Companion & origin
