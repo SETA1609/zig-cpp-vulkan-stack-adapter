@@ -63,6 +63,9 @@ vcpkg_installed/
 # debug information files
 *.dwo
 
+# Python
+__pycache__/
+
 # test output & cache
 Testing/
 .cache/
