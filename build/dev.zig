@@ -1,3 +1,10 @@
+//! Development-step wiring for the vulkan-stack adapter.
+//!
+//! Creates a smoke demo executable (`demo/main.zig`) that imports the vulkan_stack
+//! module as a downstream consumer would, and registers:
+//! - `zig build run` — build + run the smoke demo
+//! - `zig build pipeline` — build the static library (default step)
+
 const std = @import("std");
 const Modules = @import("modules.zig").Modules;
 const TestSteps = @import("tests.zig").TestSteps;

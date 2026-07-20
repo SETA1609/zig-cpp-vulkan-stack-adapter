@@ -95,6 +95,32 @@ pub fn createWin32Surface(instance: vk.Instance, hinstance: *anyopaque, hwnd: *a
 
 So this library works with **any** window source — the companion platform adapter, SDL directly, raw X11, or none at all (headless/offscreen). Pair it with a windowing layer by feeding that layer's native handle into the matching creator.
 
+## Build system
+
+The build follows a three-tier DAG pattern shared with the sibling libraries:
+
+| Layer | File | Role |
+|-------|------|------|
+| **Root** | `build.zig` | Entry point; resolves target/optimize, delegates to the three sub-steps |
+| **Modules** | `build/modules.zig` | Creates the `vulkan_stack` Zig module (`src/root.zig`), wires vulkan-zig typed bindings, builds the VMA C++ bridge, optionally imports shaderc under `-Dshaderc`, produces a `vulkan_stack` static-library artifact |
+| **Tests** | `build/tests.zig` | Wires `test` (contract unit tests via `src/tests/api_test.zig`) and `test-tdd` (behavioural TDD suite via `src/tests/tdd/main.zig`) |
+| **Dev** | `build/dev.zig` | Creates a smoke demo (`demo/main.zig`) that imports the module like a downstream consumer; registers the `pipeline` default step |
+
+### Build steps
+
+| Command | What it runs |
+|---------|-------------|
+| `zig build` | **pipeline** — build the static library (`zig-out/lib/libvulkan_stack.a`) |
+| `zig build test` | Contract unit tests (public API signatures, error sets, enum discriminants) |
+| `zig build test-tdd` | Red→green TDD suite (fails until surface-creator backends are complete) |
+| `zig build run` | Build + run the smoke demo |
+
+### Flags
+
+- `-Dtarget=<triple>` — cross-compile target (default: host)
+- `-Doptimize=<mode>` — Debug / ReleaseFast / ReleaseSafe / ReleaseSmall
+- `-Dshaderc` — include runtime GLSL→SPIR-V compilation (fetches + builds shaderc from source)
+
 ## Companion & origin
 
 - Companion: [zig-cpp-platform-stack-adapter](https://github.com/SETA1609/zig-cpp-platform-stack-adapter) — windowing + input that provides the native handles these creators consume (each library is usable alone).

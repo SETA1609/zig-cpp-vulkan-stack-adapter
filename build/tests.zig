@@ -1,3 +1,9 @@
+//! Test step wiring for the vulkan-stack adapter.
+//!
+//! Creates two test targets:
+//! - `test` — contract unit tests (`src/tests/api_test.zig`)
+//! - `test-tdd` — behavioural TDD suite (`src/tests/tdd/main.zig`)
+
 const std = @import("std");
 const Modules = @import("modules.zig").Modules;
 

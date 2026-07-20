@@ -1,3 +1,10 @@
+//! Module and library creation for the vulkan-stack adapter.
+//!
+//! Creates the `vulkan_stack` Zig module (`src/root.zig`), wires the
+//! vulkan-zig typed bindings, builds the VMA C++ bridge (`src/c/vma_bridge.cpp`),
+//! and optionally imports `shaderc_zig` for runtime GLSL→SPIR-V under the
+//! `-Dshaderc` flag. Produces a `vulkan_stack` static-link artifact.
+
 const std = @import("std");
 
 pub const Modules = struct {
