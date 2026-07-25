@@ -1,6 +1,6 @@
 # devops
 
-Host-side CLI that runs this adapter's Zig toolchain container (`vulkan-stack-adapter:zig-0.17.0`, built from the root `Dockerfile`) and logs every run. It is optional: `scripts/ci.sh` and `scripts/tdd.sh` still work with a local Zig 0.17.0. Use it when your host Zig is a different version, when you have no Vulkan device or no system shaderc, or when you want a log of a run. The image has lavapipe (software Vulkan) and `libshaderc-dev`.
+Host-side CLI that runs this adapter's Zig toolchain container (`vulkan-stack-adapter:zig-0.17.0`, built from the root `Dockerfile`) and logs every run. It is optional: `scripts/ci/ci.sh` and `scripts/ci/tdd.py` still work with a local Zig 0.17.0. Use it when your host Zig is a different version, when you have no Vulkan device or no system shaderc, or when you want a log of a run. The image has lavapipe (software Vulkan) and `libshaderc-dev`.
 
 The host needs only [uv](https://docs.astral.sh/uv/) and docker or podman. At runtime the CLI uses only the Python standard library.
 
@@ -18,7 +18,7 @@ Run it from the repo root through the shim, which calls `uv run --project tools/
 | `build [args...]` | `zig build [args...]` in the container. |
 | `test [args...]` | `zig build test [args...]` (the contract suite). |
 | `zig [args...]` | Any zig command, for example `./scripts/container.sh zig version`. |
-| `ci [gate]` | One gate of `scripts/ci.sh`: `check` (default: fmt, build, smoke demo, contract tests), `clang-format`, `shaderc`, or `device-tests`. |
+| `ci [gate]` | One gate of `scripts/ci/ci.sh`: `check` (default: fmt, build, smoke demo, contract tests), `clang-format`, `shaderc`, or `device-tests`. |
 | `tdd [args...]` | `zig build test-tdd [args...]` on lavapipe. Add `-Dshaderc` to run the shaderc tests too. |
 | `shell` | Interactive bash in the container, with the repo at `/src`. |
 | `prune` | Removes dangling images and unused build cache. The tagged image and the cache volume stay. |

@@ -3,7 +3,7 @@
 //! Pure-CPU GLSL→SPIR-V — no GPU/instance/device. The system shaderc library is
 //! linked only under `-Dshaderc`, so these tests gate on
 //! `shaderc.available` and **auto-skip** unless you build with `-Dshaderc`
-//! (`./scripts/tdd.sh` won't run them; `zig build test-tdd -Dshaderc` will).
+//! (`python scripts/ci/tdd.py` won't run them; `zig build test-tdd -Dshaderc` will).
 //! See `docs/shaderc-distribution.md`.
 
 const std = @import("std");

@@ -208,7 +208,7 @@ def run_ci_subcommand(
     repository_root: Path, extra_arguments: Sequence[str], run_log: RunLog
 ) -> int:
     """
-    One CI gate (`scripts/ci.sh [check|clang-format|shaderc|device-tests]`) in the container.
+    One CI gate (`scripts/ci/ci.sh [check|clang-format|shaderc|device-tests]`) in the container.
     """
     keep_zig_cache, ci_arguments = split_keep_zig_cache_flag(extra_arguments)
     if len(ci_arguments) > 1 or (ci_arguments and ci_arguments[0] not in CI_GATE_NAMES):
@@ -218,7 +218,7 @@ def run_ci_subcommand(
         )
         return EXIT_CODE_USAGE_ERROR
     return run_command_in_container(
-        repository_root, ["bash", "scripts/ci.sh", *ci_arguments], keep_zig_cache, run_log
+        repository_root, ["bash", "scripts/ci/ci.sh", *ci_arguments], keep_zig_cache, run_log
     )
 
 

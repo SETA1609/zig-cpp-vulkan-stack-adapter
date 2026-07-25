@@ -14,23 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate branch hierarchy
-        run: |
-          TARGET="${{ github.base_ref }}"
-          SOURCE="${{ github.head_ref }}"
-          errors=0
-
-          if [ "$TARGET" = "main" ] && [ "$SOURCE" != "dev" ]; then
-            echo "::error::PRs targeting 'main' must come from 'dev', not '$SOURCE'"
-            errors=$((errors + 1))
-          fi
-
-          if [ "$TARGET" = "dev" ] && [ "$SOURCE" = "main" ]; then
-            echo "::error::PRs targeting 'dev' must not come from 'main'"
-            errors=$((errors + 1))
-          fi
-
-          if [ "$errors" -gt 0 ]; then
-            exit 1
-          fi
-
-          echo "✅ $SOURCE → $TARGET is valid"
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: python scripts/ci/check_branch_source.py "$BASE_REF" "$HEAD_REF"

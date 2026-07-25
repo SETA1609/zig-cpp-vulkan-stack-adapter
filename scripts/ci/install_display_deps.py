@@ -5,9 +5,9 @@ Installs Xvfb + Mesa software Vulkan/GL drivers on Linux (the common headless
 CI case), and validates availability on macOS/Windows without sudo gating.
 
 Usage:
-  python scripts/install_display_deps.py              # install + verify
-  python scripts/install_display_deps.py --check-only  # verify only, no install
-  python scripts/install_display_deps.py --vulkan-only # just Vulkan loader + ICD
+  python scripts/ci/install_display_deps.py              # install + verify
+  python scripts/ci/install_display_deps.py --check-only  # verify only, no install
+  python scripts/ci/install_display_deps.py --vulkan-only # just Vulkan loader + ICD
 
 Exit codes:
   0 — deps available (or platform has native display, no install needed)
@@ -91,10 +91,12 @@ class Msg(StrEnum):
     DONE = "ok: display-deps"
 
 
-LIBVULKAN_PATHS = [
-    "/usr/lib/x86_64-linux-gnu/libvulkan.so.1",
-    "/usr/lib/aarch64-linux-gnu/libvulkan.so.1",
-]
+class LibVulkan(StrEnum):
+    X86_64 = "/usr/lib/x86_64-linux-gnu/libvulkan.so.1"
+    AARCH64 = "/usr/lib/aarch64-linux-gnu/libvulkan.so.1"
+
+
+LIBVULKAN_PATHS = [LibVulkan.X86_64, LibVulkan.AARCH64]
 
 LINUX_DISPLAY_PACKAGES = [
     "xvfb",
