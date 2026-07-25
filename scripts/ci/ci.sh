@@ -7,7 +7,7 @@
 #   ./scripts/ci/ci.sh shaderc        # build with -Dshaderc (lazy glslang from source)
 #   ./scripts/ci/ci.sh device-tests   # test-tdd -Dshaderc (needs a Vulkan ICD; lavapipe in CI)
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 case "${1:-check}" in
   check)
