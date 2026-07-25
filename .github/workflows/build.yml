@@ -97,4 +97,4 @@ jobs:
           use-cache: true
       - name: Install Vulkan loader + lavapipe (software ICD)
         run: python scripts/ci/install_display_deps.py --vulkan-only
-      - run: bash scripts/ci/ci.sh device-tests
+      - run: python scripts/ci/tdd.py
