@@ -14,4 +14,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate branch hierarchy
-        run: bash scripts/check-branch-source.sh "${{ github.base_ref }}" "${{ github.head_ref }}"
+        run: bash scripts/ci/check-branch-source.sh "${{ github.base_ref }}" "${{ github.head_ref }}"

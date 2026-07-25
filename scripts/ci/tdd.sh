@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run the gated red→green TDD suite. Optional arg = --test-filter substring.
-#   ./scripts/tdd.sh                  # whole suite
-#   ./scripts/tdd.sh "createAllocator"  # just matching tests (full output, panics shown)
+#   ./scripts/ci/tdd.sh                  # whole suite
+#   ./scripts/ci/tdd.sh "createAllocator"  # just matching tests (full output, panics shown)
 set -uo pipefail
 cd "$(dirname "$0")/.."
 if [ -n "${1:-}" ]; then

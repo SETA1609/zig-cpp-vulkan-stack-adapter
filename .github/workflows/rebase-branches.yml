@@ -16,4 +16,4 @@ jobs:
         with:
           fetch-depth: 0
       - name: Rebase branches
-        run: bash scripts/rebase-branches.sh ${{ github.ref_name }}
+        run: bash scripts/ci/rebase-branches.sh ${{ github.ref_name }}
