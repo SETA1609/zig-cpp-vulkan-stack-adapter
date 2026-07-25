@@ -17,4 +17,4 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
           HEAD_REF: ${{ github.head_ref }}
-        run: bash scripts/ci/check-branch-source.sh "$BASE_REF" "$HEAD_REF"
+        run: python scripts/ci/check_branch_source.py "$BASE_REF" "$HEAD_REF"
