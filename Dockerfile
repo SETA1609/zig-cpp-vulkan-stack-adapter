@@ -2,9 +2,9 @@
 #
 #   docker build -t vk-stack .                         # build the image
 #   docker run --rm vk-stack                           # default: fmt + build + smoke + contract test
-#   docker run --rm vk-stack bash scripts/ci.sh clang-format
-#   docker run --rm vk-stack bash scripts/ci.sh shaderc        # build glslang from source (-Dshaderc)
-#   docker run --rm vk-stack bash scripts/ci.sh device-tests   # volk/VMA against lavapipe (software Vulkan)
+#   docker run --rm vk-stack bash scripts/ci/ci.sh clang-format
+#   docker run --rm vk-stack bash scripts/ci/ci.sh shaderc        # build glslang from source (-Dshaderc)
+#   docker run --rm vk-stack bash scripts/ci/ci.sh device-tests   # volk/VMA against lavapipe (software Vulkan)
 #
 # Headless by design: lavapipe is the only Vulkan ICD, so device tests need no
 # GPU; the test harness opens no window, so no display is needed. Build deps for
@@ -36,4 +36,4 @@ WORKDIR /work
 COPY . .
 RUN python3 -m pip install --break-system-packages --quiet pyyaml || true
 
-CMD ["bash", "scripts/ci.sh", "check"]
+CMD ["bash", "scripts/ci/ci.sh", "check"]

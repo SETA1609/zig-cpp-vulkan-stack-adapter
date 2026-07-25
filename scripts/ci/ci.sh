@@ -2,12 +2,12 @@
 # The CI gates, runnable locally — the same checks .github/workflows/build.yml
 # runs (it installs the toolchain / clang-format-18 / Vulkan ICD, then calls
 # this with the matching command).
-#   ./scripts/ci.sh                # fmt + build + smoke demo + contract tests
-#   ./scripts/ci.sh clang-format   # C++ bridge style (src/c) — needs clang-format-18
-#   ./scripts/ci.sh shaderc        # build with -Dshaderc (lazy glslang from source)
-#   ./scripts/ci.sh device-tests   # test-tdd -Dshaderc (needs a Vulkan ICD; lavapipe in CI)
+#   ./scripts/ci/ci.sh                # fmt + build + smoke demo + contract tests
+#   ./scripts/ci/ci.sh clang-format   # C++ bridge style (src/c) — needs clang-format-18
+#   ./scripts/ci/ci.sh shaderc        # build with -Dshaderc (lazy glslang from source)
+#   ./scripts/ci/ci.sh device-tests   # test-tdd -Dshaderc (needs a Vulkan ICD; lavapipe in CI)
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 case "${1:-check}" in
   check)

@@ -2,7 +2,7 @@ name: CI
 
 # Runs on every push (any branch) and every PR. The `build` job is the merge
 # gate: make it a required status check in branch protection for `main`. The
-# checks live in scripts/ci.sh (single source of truth, runnable locally) — the
+# checks live in scripts/ci/ci.sh (single source of truth, runnable locally) — the
 # jobs here just install the toolchain / clang-format-18 / Vulkan ICD.
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
 
 defaults:
   run:
-    shell: bash # so scripts/ci.sh runs on the Windows runner too
+    shell: bash # so scripts/ci/ci.sh runs on the Windows runner too
 
 jobs:
   # Lint the workflow YAML itself for safety (structure, action pinning,
@@ -51,7 +51,7 @@ jobs:
       - run: zig version
       # fmt + build (vk bindings + VMA C++ bridge) + smoke demo + contract test.
       - name: CI checks
-        run: bash scripts/ci.sh check
+        run: bash scripts/ci/ci.sh check
 
   # The only C++↔Zig boundary in the lib (the VMA bridge). Google style; the
   # .clang-format `Standard: Latest` needs clang-format-18.
@@ -63,7 +63,7 @@ jobs:
       - name: Install clang-format-18
         run: sudo apt-get update && sudo apt-get install -y clang-format-18
       - name: Check src/c
-        run: CLANG_FORMAT=clang-format-18 bash scripts/ci.sh clang-format
+        run: CLANG_FORMAT=clang-format-18 bash scripts/ci/ci.sh clang-format
 
   # Proves the opt-in shaderc wiring compiles: fetches the lazy tiawl/shaderc.zig
   # dep and builds shaderc + glslang + SPIRV-Tools from source (slow cold; cached).
@@ -77,13 +77,13 @@ jobs:
         with:
           version: 0.16.0
           use-cache: true
-      - run: bash scripts/ci.sh shaderc
+      - run: bash scripts/ci/ci.sh shaderc
 
   # The device-dependent test-tdd suite (volk + VMA) on Mesa lavapipe (software
   # Vulkan ICD). lavapipe's advertised version varies by runner image (the
   # harness requests 1.3), so this is INFORMATIONAL (continue-on-error), not a
   # hard gate — flip it once it's confirmed stable. Real-GPU verification still
-  # happens locally / in the dev container (`bash scripts/ci.sh device-tests`).
+  # happens locally / in the dev container (`bash scripts/ci/ci.sh device-tests`).
   device-tests:
     name: test-tdd (lavapipe Vulkan)
     runs-on: ubuntu-latest
@@ -96,5 +96,5 @@ jobs:
           version: 0.16.0
           use-cache: true
       - name: Install Vulkan loader + lavapipe (software ICD)
-        run: python scripts/install_display_deps.py --vulkan-only
-      - run: bash scripts/ci.sh device-tests
+        run: python scripts/ci/install_display_deps.py --vulkan-only
+      - run: python scripts/ci/tdd.py
