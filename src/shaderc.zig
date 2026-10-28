@@ -1,9 +1,9 @@
 //! GLSL → SPIR-V compilation (shaderc).
 //!
-//! shaderc ships a **C** API, so this is a pure-Zig `@cImport` wrapper — no C++
-//! bridge (unlike VMA). shaderc + glslang + SPIRV-Tools are built from source by
-//! the `tiawl/shaderc.zig` package and linked **only** when you build with
-//! `-Dshaderc` (a lazy dependency). Without it, the stack stays lean and
+//! shaderc ships a **C** API, so this is a pure-Zig wrapper over the translated
+//! headers (the `shaderc_c` module from `build/modules.zig`) — no C++
+//! bridge (unlike VMA). `-Dshaderc` links the system shaderc library (libshaderc-dev on Debian/Ubuntu, the Vulkan SDK elsewhere);
+//! without the flag nothing is linked. Without it, the stack stays lean and
 //! `compile` traps — embed precompiled SPIR-V (`@embedFile`) instead. See
 //! `docs/shaderc-distribution.md`. *(since v0.4.0)*
 
@@ -107,9 +107,7 @@ pub fn compile(
 }
 
 const backend = if (available) struct {
-    const c = @cImport({
-        @cInclude("shaderc/shaderc.h");
-    });
+    const c = @import("shaderc_c");
 
     // Per-compile context for the include callbacks (shaderc hands back one
     // `void*`). Lives on `compile`'s stack — valid for the whole synchronous call.

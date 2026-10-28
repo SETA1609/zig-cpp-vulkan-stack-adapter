@@ -43,7 +43,7 @@ test "create: one image view per swapchain image" {
     try gate(done.create);
     var ctx = try h.VkCtx.init();
     defer ctx.deinit();
-    var sc = try Swapchain.create(std.testing.allocator, ctx.vki, ctx.vkd, ctx.physical, ctx.device, .null_handle, .{});
+    var sc = try Swapchain.create(std.testing.allocator, ctx.vki, ctx.vkd, ctx.physical, ctx.device, .null, .{});
     defer sc.deinit(std.testing.allocator, ctx.vkd, ctx.device);
     try std.testing.expectEqual(sc.images.len, sc.views.len);
     try std.testing.expect(sc.images.len > 0);
@@ -54,9 +54,9 @@ test "deinit: a swapchain can be created again after teardown" {
     try gate(done.create and done.deinit);
     var ctx = try h.VkCtx.init();
     defer ctx.deinit();
-    var first = try Swapchain.create(std.testing.allocator, ctx.vki, ctx.vkd, ctx.physical, ctx.device, .null_handle, .{});
+    var first = try Swapchain.create(std.testing.allocator, ctx.vki, ctx.vkd, ctx.physical, ctx.device, .null, .{});
     first.deinit(std.testing.allocator, ctx.vkd, ctx.device);
-    var second = try Swapchain.create(std.testing.allocator, ctx.vki, ctx.vkd, ctx.physical, ctx.device, .null_handle, .{});
+    var second = try Swapchain.create(std.testing.allocator, ctx.vki, ctx.vkd, ctx.physical, ctx.device, .null, .{});
     defer second.deinit(std.testing.allocator, ctx.vkd, ctx.device);
 }
 
@@ -67,9 +67,9 @@ test "recreate: refreshes the swapchain in place" {
     try gate(done.create and done.recreate);
     var ctx = try h.VkCtx.init();
     defer ctx.deinit();
-    var sc = try Swapchain.create(std.testing.allocator, ctx.vki, ctx.vkd, ctx.physical, ctx.device, .null_handle, .{});
+    var sc = try Swapchain.create(std.testing.allocator, ctx.vki, ctx.vkd, ctx.physical, ctx.device, .null, .{});
     defer sc.deinit(std.testing.allocator, ctx.vkd, ctx.device);
-    try sc.recreate(std.testing.allocator, ctx.vki, ctx.vkd, ctx.physical, ctx.device, .null_handle);
+    try sc.recreate(std.testing.allocator, ctx.vki, ctx.vkd, ctx.physical, ctx.device, .null);
 }
 
 // --- toRaw (bridge) --------------------------------------------------------

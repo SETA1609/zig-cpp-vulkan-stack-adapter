@@ -24,7 +24,7 @@ No GPL/LGPL dependencies.
 ### Where the C++ actually comes from — and how to cut it
 
 - **VMA genuinely forces C++.** It's header-only C++ with no C entry point, so `@cImport` can't process it; you must compile a C++ translation unit (`VMA_IMPLEMENTATION`) and expose a C-clean header. This is the irreducible C++ in the repo.
-- **shaderc does *not* force C++.** It ships a C API (`shaderc/shaderc.h`), so we `@cImport` it directly, link the compiled `libshaderc` (built from source by `tiawl/shaderc.zig`), and write the wrapper in **Zig** — **no shaderc C++ bridge.** That keeps the hand-written split at roughly **Zig ~82% / C++ ~18%** (the VMA bridge is the only C++). The `-cpp-` in the repo name is earned by that single bridge plus the upstream C/C++ in the shipped binary.
+- **shaderc does *not* force C++.** It ships a C API (`shaderc/shaderc.h`), so we translate it with `b.addTranslateC` (Zig 0.17 removed `@cImport`), link the system `libshaderc`, and write the wrapper in **Zig** — **no shaderc C++ bridge.** That keeps the hand-written split at roughly **Zig ~82% / C++ ~18%** (the VMA bridge is the only C++). The `-cpp-` in the repo name is earned by that single bridge plus the upstream C/C++ in the shipped binary.
 
 Every `extern "C"` bridge function (the VMA bridge — the only one) is `noexcept` and catches before crossing the C ABI (see [`CONTRIBUTING.md`](../CONTRIBUTING.md)).
 

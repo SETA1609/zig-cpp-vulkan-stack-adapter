@@ -31,9 +31,9 @@ fn imageInfo() vk.ImageCreateInfo {
         .extent = .{ .width = 4, .height = 4, .depth = 1 },
         .mip_levels = 1,
         .array_layers = 1,
-        .samples = .{ .@"1_bit" = true },
+        .samples = .{ .@"1" = true },
         .tiling = .optimal,
-        .usage = .{ .sampled_bit = true, .transfer_dst_bit = true },
+        .usage = .{ .sampled = true, .transfer_dst = true },
         .sharing_mode = .exclusive,
         .initial_layout = .undefined,
     };
@@ -48,12 +48,12 @@ test "getAllocationInfo: reports backing device memory and a size ≥ the reques
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(256, .{ .transfer_src_bit = true });
+    const info = bufferInfo(256, .{ .transfer_src = true });
     const res = try vma.createBuffer(a, &info, .cpu_to_gpu);
     defer vma.destroyBuffer(a, res.buffer, res.allocation);
 
     const ai = vma.getAllocationInfo(a, res.allocation);
-    try std.testing.expect(ai.device_memory != .null_handle);
+    try std.testing.expect(ai.device_memory != .null);
     try std.testing.expect(ai.size >= 256);
 }
 
@@ -64,7 +64,7 @@ test "getAllocationInfo: a non-mapped allocation has null mapped_data" {
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(64, .{ .transfer_src_bit = true });
+    const info = bufferInfo(64, .{ .transfer_src = true });
     const res = try vma.createBuffer(a, &info, .cpu_to_gpu); // no MAPPED flag
     defer vma.destroyBuffer(a, res.buffer, res.allocation);
 
@@ -79,7 +79,7 @@ test "getAllocationInfo: two allocations report distinct (memory, offset) placem
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(128, .{ .uniform_buffer_bit = true });
+    const info = bufferInfo(128, .{ .uniform_buffer = true });
     const x = try vma.createBuffer(a, &info, .cpu_to_gpu);
     defer vma.destroyBuffer(a, x.buffer, x.allocation);
     const y = try vma.createBuffer(a, &info, .cpu_to_gpu);
@@ -100,7 +100,7 @@ test "createBufferWithFlags: a MAPPED auto buffer exposes a persistent pointer" 
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(64, .{ .transfer_src_bit = true });
+    const info = bufferInfo(64, .{ .transfer_src = true });
     const res = try vma.createBufferWithFlags(a, &info, .auto, .{
         .mapped = true,
         .host_access_sequential_write = true,
@@ -118,7 +118,7 @@ test "createBufferWithFlags: the persistent map is writable" {
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(4, .{ .transfer_src_bit = true });
+    const info = bufferInfo(4, .{ .transfer_src = true });
     const res = try vma.createBufferWithFlags(a, &info, .auto, .{
         .mapped = true,
         .host_access_sequential_write = true,
@@ -139,7 +139,7 @@ test "flushAllocation: flushing the whole range of a mapped buffer succeeds" {
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(256, .{ .transfer_src_bit = true });
+    const info = bufferInfo(256, .{ .transfer_src = true });
     const res = try vma.createBufferWithFlags(a, &info, .auto, .{
         .mapped = true,
         .host_access_sequential_write = true,
@@ -155,7 +155,7 @@ test "flushAllocation: flushing a sub-range succeeds" {
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(256, .{ .transfer_src_bit = true });
+    const info = bufferInfo(256, .{ .transfer_src = true });
     const res = try vma.createBufferWithFlags(a, &info, .auto, .{
         .mapped = true,
         .host_access_sequential_write = true,
@@ -171,7 +171,7 @@ test "invalidateAllocation: invalidating a mapped readback buffer succeeds" {
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(256, .{ .transfer_dst_bit = true });
+    const info = bufferInfo(256, .{ .transfer_dst = true });
     const res = try vma.createBufferWithFlags(a, &info, .auto, .{
         .mapped = true,
         .host_access_random = true,
@@ -193,7 +193,7 @@ test "createImageWithFlags: a dedicated-memory image lives at offset 0 of its ow
     const res = try vma.createImageWithFlags(a, &info, .gpu_only, .{ .dedicated_memory = true });
     defer vma.destroyImage(a, res.image, res.allocation);
 
-    try std.testing.expect(res.image != .null_handle);
+    try std.testing.expect(res.image != .null);
     const ai = vma.getAllocationInfo(a, res.allocation);
     try std.testing.expectEqual(@as(u64, 0), ai.offset); // own block ⇒ offset 0
 }
@@ -208,5 +208,5 @@ test "createImageWithFlags: a plain (no-flags) image still allocates" {
     const info = imageInfo();
     const res = try vma.createImageWithFlags(a, &info, .gpu_only, .{});
     defer vma.destroyImage(a, res.image, res.allocation);
-    try std.testing.expect(res.image != .null_handle);
+    try std.testing.expect(res.image != .null);
 }

@@ -2,12 +2,12 @@
 
 A standalone **Zig library** that bundles the Vulkan stack — [vulkan-zig](https://github.com/Snektron/vulkan-zig) + [volk](https://github.com/zeux/volk) + [VMA](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator) + [shaderc](https://github.com/google/shaderc) — **version-pinned together** and surfaced as idiomatic Zig. One dependency, no version drift between the pieces.
 
-**License:** [MIT](LICENSE) · **Requires:** Zig 0.16+ · **Status:** pre-1.0, single-maintainer
+**License:** [MIT](LICENSE) · **Requires:** Zig 0.17.0 · **Status:** pre-1.0, single-maintainer
 
 > **Status detail:** real today — the **`vk` re-export** (full typed API via
 > `@import("vulkan_stack").vk`), the **`volk` loader** (pure Zig via `std.DynLib`),
 > the **X11 + Wayland surface creators**, **VMA** (via a `noexcept` C++ bridge),
-> and **shaderc** (built from source by `tiawl/shaderc.zig`, opt-in under
+> and **shaderc** (the system shaderc library, opt-in under
 > **`-Dshaderc`** — see [`docs/shaderc-distribution.md`](docs/shaderc-distribution.md)).
 > Still `@panic("not implemented")`: the **Win32 / Android** surface creators and
 > the **`Swapchain` abstraction** (v0.6.0, the opt-in two-tier helper) — see
@@ -41,7 +41,7 @@ A single Zig package that gives you the full Vulkan stack with idiomatic Zig typ
 - **`vk`** — [vulkan-zig](https://github.com/Snektron/vulkan-zig)'s bindings, re-exported as-is. Typed enums, error sets, comptime dispatch — no C-ABI tax.
 - **`vma`** — GPU memory allocator (VMA) behind a `noexcept` `extern "C"` bridge, surfaced as idiomatic Zig.
 - **`volk`** — Vulkan loader, implemented in **pure Zig** (`std.DynLib` dynamically opens `libvulkan` and resolves `vkGetInstanceProcAddr`). `getInstanceProcAddr()` then feeds vulkan-zig's `vk.BaseWrapper`/`InstanceWrapper`/`DeviceWrapper`, which own the typed dispatch — so the binary doesn't hard-link `libvulkan`, and there's no vendored C loader to keep version-coherent.
-- **`shaderc`** — GLSL→SPIR-V, a pure-Zig `@cImport` wrapper over shaderc's C API (no C++ bridge), built from source by `tiawl/shaderc.zig` and opt-in under `-Dshaderc`.
+- **`shaderc`** — GLSL→SPIR-V, a pure-Zig wrapper over shaderc's C API (translated by `b.addTranslateC`, no C++ bridge), linking the system shaderc library, opt-in under `-Dshaderc`.
 - **Per-OS surface creators** — `createX11Surface` / `createWaylandSurface` / `createWin32Surface` / `createAndroidSurface`, each taking raw OS primitives (no windowing-library import).
 
 ## Why bundled — version coherence
@@ -120,7 +120,7 @@ The build follows a three-tier DAG pattern shared with the sibling libraries:
 - `-Dtarget=<triple>` — cross-compile target (default: host)
 - `-Doptimize=<mode>` — Debug / ReleaseFast / ReleaseSafe / ReleaseSmall
 - `-Dplatforms=<list>` — surface platforms to compile: `x11`, `wayland`, `win32`, `android`, `metal` (space-separated, default: all)
-- `-Dshaderc` — include runtime GLSL→SPIR-V compilation (fetches + builds shaderc from source)
+- `-Dshaderc` — include runtime GLSL→SPIR-V compilation (links the system shaderc library: `libshaderc-dev` or the Vulkan SDK)
 
 ## Companion & origin
 

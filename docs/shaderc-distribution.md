@@ -12,11 +12,13 @@
 
 ## The options
 
-### 0. System / SDK auto-detect *(baseline — NOT zero-setup)*
-`build.zig` finds shaderc via `VULKAN_SDK` / system paths and links it; gated off
-when absent. **This is what we have wired today.** It's fine for *us* (we have
-the SDK) but every consumer must install the Vulkan SDK first → fails the goal.
-Keep it as a fast path / override, not the answer.
+### 0. System / SDK library — ✅ **ADOPTED for `-Dshaderc` since the Zig 0.17.0 port**
+`-Dshaderc` links the shaderc C library installed on the system
+(`linkSystemLibrary("shaderc")`: `libshaderc-dev` on Debian/Ubuntu, `shaderc_shared`
+from the Vulkan SDK elsewhere) and translates `shaderc/shaderc.h` with
+`b.addTranslateC`. Not zero-setup: whoever builds with `-Dshaderc` installs the
+library first. Acceptable because runtime GLSL compilation is an opt-in for tools
+and editors; the default build (Option A) needs nothing.
 
 ### A. Don't require runtime shaderc — ship/precompile SPIR-V *(zero-setup by removal)*
 Most engines **ship precompiled `.spv`**, not a GLSL compiler. Make `shaderc`
@@ -35,7 +37,16 @@ const frag align(4) = @embedFile("tri.frag.spv").*;
   shipped game that's usually fine; for a live shader playground it isn't.
 - **Effort:** ~0. **This is the pragmatic default and unblocks the whole ladder.**
 
-### B. Reuse an existing Zig package — ✅ **ADOPTED** (`tiawl/shaderc.zig`)
+### B. Reuse an existing Zig package — used until the Zig 0.17.0 port (`tiawl/shaderc.zig`)
+
+> **Dropped for Zig 0.17.0.** `tiawl/shaderc.zig`, `spirv.zig`, and `glslang.zig`
+> still target Zig 0.16 and pin `tiawl/toolbox` 2.1.3, whose `build.zig` calls
+> `std.Uri.getHostAlloc` (removed in 0.17). Zig cannot override a transitive
+> dependency, and 0.17 fetches the lazy package even without `-Dshaderc`, so
+> keeping it in `build.zig.zon` broke every build. Switch back once those
+> packages move to a 0.17 toolbox (`toolbox` `stable` already requires 0.17.0).
+
+The text below describes how it was used on 0.16.
 A maintained `build.zig.zon` package, [`tiawl/shaderc.zig`](https://github.com/tiawl/shaderc.zig),
 builds shaderc + glslang + SPIRV-Tools **from source via the Zig build system**
 (no system SDK, cross-compiles), supports Zig 0.16.0, and tracks upstream via a
@@ -105,7 +116,12 @@ prebuilt matching the consumer's target and links it.
 
 ## What we shipped
 
-**A + B together — no consumer setup either way:**
+**Since the Zig 0.17.0 port: A + 0.** The default build is Option A, as before.
+`zig build -Dshaderc` links the system shaderc library (Option 0), because the
+Option B package is not ported to 0.17 yet (see above). In the project-new-world
+container and in CI, `libshaderc-dev` is installed and the shaderc tests run.
+
+**Before the port (Zig 0.16): A + B together — no consumer setup either way:**
 
 - **Default (`zig build`) → Option A.** `shaderc` is off; nothing extra is
   fetched. Use `shaderc.available` to branch and embed precompiled SPIR-V

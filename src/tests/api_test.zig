@@ -47,20 +47,20 @@ test "root re-exports the four bundled namespaces" {
 
 // WHEN reading shaderc.Stage's integer values · GIVEN the enum's wire contract in enum-values.md · THEN vertex=0, fragment=1, compute=2, tess_eval=5.
 test "enum values: shaderc.Stage (match enum-values.md)" {
-    try std.testing.expectEqual(@as(u8, 0), @intFromEnum(vk_stack.shaderc.Stage.vertex));
-    try std.testing.expectEqual(@as(u8, 1), @intFromEnum(vk_stack.shaderc.Stage.fragment));
-    try std.testing.expectEqual(@as(u8, 2), @intFromEnum(vk_stack.shaderc.Stage.compute));
-    try std.testing.expectEqual(@as(u8, 5), @intFromEnum(vk_stack.shaderc.Stage.tess_eval));
+    try std.testing.expectEqual(@as(u8, 0), @backingInt(vk_stack.shaderc.Stage.vertex));
+    try std.testing.expectEqual(@as(u8, 1), @backingInt(vk_stack.shaderc.Stage.fragment));
+    try std.testing.expectEqual(@as(u8, 2), @backingInt(vk_stack.shaderc.Stage.compute));
+    try std.testing.expectEqual(@as(u8, 5), @backingInt(vk_stack.shaderc.Stage.tess_eval));
 }
 
 // WHEN reading shaderc.OptimizeLevel and vma.Usage integer values · GIVEN their documented wire contract · THEN none/performance and the four Usage residencies map to 0..3 as specified.
 test "enum values: shaderc.OptimizeLevel + vma.Usage" {
-    try std.testing.expectEqual(@as(u8, 0), @intFromEnum(vk_stack.shaderc.OptimizeLevel.none));
-    try std.testing.expectEqual(@as(u8, 2), @intFromEnum(vk_stack.shaderc.OptimizeLevel.performance));
-    try std.testing.expectEqual(@as(u8, 0), @intFromEnum(vk_stack.vma.Usage.auto));
-    try std.testing.expectEqual(@as(u8, 1), @intFromEnum(vk_stack.vma.Usage.gpu_only));
-    try std.testing.expectEqual(@as(u8, 2), @intFromEnum(vk_stack.vma.Usage.cpu_to_gpu));
-    try std.testing.expectEqual(@as(u8, 3), @intFromEnum(vk_stack.vma.Usage.gpu_to_cpu));
+    try std.testing.expectEqual(@as(u8, 0), @backingInt(vk_stack.shaderc.OptimizeLevel.none));
+    try std.testing.expectEqual(@as(u8, 2), @backingInt(vk_stack.shaderc.OptimizeLevel.performance));
+    try std.testing.expectEqual(@as(u8, 0), @backingInt(vk_stack.vma.Usage.auto));
+    try std.testing.expectEqual(@as(u8, 1), @backingInt(vk_stack.vma.Usage.gpu_only));
+    try std.testing.expectEqual(@as(u8, 2), @backingInt(vk_stack.vma.Usage.cpu_to_gpu));
+    try std.testing.expectEqual(@as(u8, 3), @backingInt(vk_stack.vma.Usage.gpu_to_cpu));
 }
 
 // WHEN constructing a default shaderc.CompileOptions · GIVEN no fields set · THEN optimize=.performance, debug_info=false, entry_point="main".
@@ -74,9 +74,11 @@ test "shaderc.CompileOptions defaults" {
 // WHEN constructing a vma.AllocatorCreateInfo with only the handles · GIVEN no api_version set · THEN api_version defaults to Vulkan 1.3.
 test "vma.AllocatorCreateInfo defaults to Vulkan 1.3" {
     const info: vk_stack.vma.AllocatorCreateInfo = .{
-        .physical_device = .null_handle,
-        .device = .null_handle,
-        .instance = .null_handle,
+        // Dispatchable handles are non-null pointers in vulkan-zig; this test
+        // only reads `api_version`, so the handles are never used.
+        .physical_device = undefined,
+        .device = undefined,
+        .instance = undefined,
     };
     try std.testing.expectEqual(api_1_3, info.api_version);
 }
