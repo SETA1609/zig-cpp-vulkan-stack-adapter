@@ -1,10 +1,22 @@
 # Changelog
 
-Last updated: 2026-10-28T23:28Z
+Last updated: 2026-10-28T23:39Z
 
 Changes per issue, newest first. Each PR adds its entry and updates the timestamp above. Issue IDs prefixed `S0-` are from [project-new-world](https://github.com/SETA1609/project-new-world/tree/main/docs/stories), which uses this adapter as its `vk_stack` module. History before this file: `git log`.
 
 ## Unreleased
+
+### S0-03 Container devops CLI for contributors
+
+Branch `s0-03-container-devops-cli`, stacked on the 0.17.0 port.
+
+- Add `.zig-version` (`0.17.0`), checked against `ARG ZIG_VERSION` in the `Dockerfile`.
+- Add `tools/devops/`, a host-side Python CLI (uv; standard library only at runtime) copied from project-new-world and the platform adapter. It runs the toolchain container with every output line timestamped and logged to `cache/logs/`.
+- One shim: `./scripts/container.sh <subcommand>` with `image`, `build`, `test`, `zig`, `ci [check|clang-format|shaderc|device-tests]`, `tdd [args...]` (`zig build test-tdd` on lavapipe), `shell`, `prune`, and `clean`.
+- A leading `--keep-cache` keeps the Zig global cache in the volume `vulkan-stack-adapter-zig-cache` until `clean`.
+- `Dockerfile`: `VK_ICD_FILENAMES` points at `lvp_icd.json`. Current Ubuntu Mesa no longer ships `lvp_icd.x86_64.json`, so the image found no Vulkan driver and every device test failed with `error_incompatible_driver`.
+- `scripts/ci.sh` and `scripts/tdd.sh` are unchanged and still run without a container.
+- Checked: `container.sh ci` passes for `check`, `clang-format`, `shaderc`, and `device-tests`; `container.sh tdd -Dshaderc` passes.
 
 ### S0-03 Port to Zig 0.17.0
 
