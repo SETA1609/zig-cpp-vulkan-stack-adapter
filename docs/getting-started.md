@@ -4,7 +4,7 @@ A from-scratch walkthrough: add the dependency, wire the build, and bootstrap a
 Vulkan instance + surface. For the API reference see [`api.md`](api.md); for how
 Vulkan works see [`vulkan-cheat-sheet.md`](vulkan-cheat-sheet.md).
 
-**Requires Zig 0.16+** and, at runtime, a Vulkan loader (`libvulkan`) + ICD.
+**Requires Zig 0.17.0** and, at runtime, a Vulkan loader (`libvulkan`) + ICD.
 
 ## 1. Add the dependency
 
@@ -80,8 +80,7 @@ surface creators, and **VMA** — `createAllocator`, `createBuffer`/`createImage
 `mapMemory`, `getAllocationInfo`, and `flushAllocation`/`invalidateAllocation`
 for non-coherent host memory.
 
-**shaderc** (`vk_stack.shaderc.compile`) is built from source by
-`tiawl/shaderc.zig` and only linked when you build with **`-Dshaderc`** — branch
+**shaderc** (`vk_stack.shaderc.compile`) uses the system shaderc library (libshaderc-dev on Debian/Ubuntu, the Vulkan SDK elsewhere), linked only when you build with **`-Dshaderc`** — branch
 on `shaderc.available`; without it, embed precompiled SPIR-V (`@embedFile` a
 `.spv`). It supports macro defines, a target Vulkan/SPIR-V version, `#include`
 resolution, and the ray-tracing + mesh stages. See

@@ -34,9 +34,9 @@ fn imageInfo() vk.ImageCreateInfo {
         .extent = .{ .width = 4, .height = 4, .depth = 1 },
         .mip_levels = 1,
         .array_layers = 1,
-        .samples = .{ .@"1_bit" = true },
+        .samples = .{ .@"1" = true },
         .tiling = .optimal,
-        .usage = .{ .sampled_bit = true, .transfer_dst_bit = true },
+        .usage = .{ .sampled = true, .transfer_dst = true },
         .sharing_mode = .exclusive,
         .initial_layout = .undefined,
     };
@@ -85,10 +85,10 @@ test "createBuffer: a cpu_to_gpu buffer is non-null with an allocation" {
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(256, .{ .transfer_src_bit = true });
+    const info = bufferInfo(256, .{ .transfer_src = true });
     const res = try vma.createBuffer(a, &info, .cpu_to_gpu);
     defer vma.destroyBuffer(a, res.buffer, res.allocation);
-    try std.testing.expect(res.buffer != .null_handle);
+    try std.testing.expect(res.buffer != .null);
     try std.testing.expect(@intFromPtr(res.allocation) != 0);
 }
 
@@ -99,10 +99,10 @@ test "createBuffer: a gpu_only vertex buffer is created" {
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(1024, .{ .vertex_buffer_bit = true, .transfer_dst_bit = true });
+    const info = bufferInfo(1024, .{ .vertex_buffer = true, .transfer_dst = true });
     const res = try vma.createBuffer(a, &info, .gpu_only);
     defer vma.destroyBuffer(a, res.buffer, res.allocation);
-    try std.testing.expect(res.buffer != .null_handle);
+    try std.testing.expect(res.buffer != .null);
 }
 
 // WHEN creating two buffers from the same create info · GIVEN a live allocator · THEN the two buffers have distinct handles.
@@ -112,7 +112,7 @@ test "createBuffer: two buffers get distinct handles" {
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(128, .{ .uniform_buffer_bit = true });
+    const info = bufferInfo(128, .{ .uniform_buffer = true });
     const x = try vma.createBuffer(a, &info, .cpu_to_gpu);
     defer vma.destroyBuffer(a, x.buffer, x.allocation);
     const y = try vma.createBuffer(a, &info, .cpu_to_gpu);
@@ -132,7 +132,7 @@ test "createImage: a gpu_only 2D image is non-null with an allocation" {
     const info = imageInfo();
     const res = try vma.createImage(a, &info, .gpu_only);
     defer vma.destroyImage(a, res.image, res.allocation);
-    try std.testing.expect(res.image != .null_handle);
+    try std.testing.expect(res.image != .null);
     try std.testing.expect(@intFromPtr(res.allocation) != 0);
 }
 
@@ -161,7 +161,7 @@ test "createImage: a sampled+transfer-dst image is created" {
     const info = imageInfo();
     const res = try vma.createImage(a, &info, .gpu_only);
     defer vma.destroyImage(a, res.image, res.allocation);
-    try std.testing.expect(res.image != .null_handle);
+    try std.testing.expect(res.image != .null);
 }
 
 // --- mapMemory / unmapMemory -----------------------------------------------
@@ -173,7 +173,7 @@ test "mapMemory: mapping a cpu_to_gpu allocation returns a non-null pointer" {
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(64, .{ .transfer_src_bit = true });
+    const info = bufferInfo(64, .{ .transfer_src = true });
     const res = try vma.createBuffer(a, &info, .cpu_to_gpu);
     defer vma.destroyBuffer(a, res.buffer, res.allocation);
     const ptr = try vma.mapMemory(a, res.allocation);
@@ -188,7 +188,7 @@ test "mapMemory: host-visible memory round-trips a byte pattern" {
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(4, .{ .transfer_src_bit = true });
+    const info = bufferInfo(4, .{ .transfer_src = true });
     const res = try vma.createBuffer(a, &info, .cpu_to_gpu);
     defer vma.destroyBuffer(a, res.buffer, res.allocation);
 
@@ -210,7 +210,7 @@ test "mapMemory: a mapped allocation can be unmapped and remapped" {
     defer ctx.deinit();
     const a = try vma.createAllocator(ctx.allocInfo());
     defer vma.destroyAllocator(a);
-    const info = bufferInfo(32, .{ .transfer_src_bit = true });
+    const info = bufferInfo(32, .{ .transfer_src = true });
     const res = try vma.createBuffer(a, &info, .cpu_to_gpu);
     defer vma.destroyBuffer(a, res.buffer, res.allocation);
     const p1 = try vma.mapMemory(a, res.allocation);

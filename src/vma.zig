@@ -132,18 +132,18 @@ extern fn vma_bridge_invalidate_allocation(a: *Allocator, alloc: *Allocation, of
 /// vulkan-zig's `vk.Result` values, so there are no magic numbers.
 fn check(result: i32) Error!void {
     return switch (result) {
-        @intFromEnum(vk.Result.success) => {},
-        @intFromEnum(vk.Result.error_out_of_host_memory) => Error.OutOfHostMemory,
-        @intFromEnum(vk.Result.error_out_of_device_memory) => Error.OutOfDeviceMemory,
-        @intFromEnum(vk.Result.error_memory_map_failed) => Error.MappingFailed,
-        @intFromEnum(vk.Result.error_initialization_failed) => Error.InitializationFailed,
+        @backingInt(vk.Result.success) => {},
+        @backingInt(vk.Result.error_out_of_host_memory) => Error.OutOfHostMemory,
+        @backingInt(vk.Result.error_out_of_device_memory) => Error.OutOfDeviceMemory,
+        @backingInt(vk.Result.error_memory_map_failed) => Error.MappingFailed,
+        @backingInt(vk.Result.error_initialization_failed) => Error.InitializationFailed,
         else => Error.Unknown,
     };
 }
 
-/// Dispatchable Vulkan handle (`enum(usize)`) → the opaque pointer the C ABI wants.
+/// Dispatchable Vulkan handle (`*opaque {}` in vulkan-zig) → the opaque pointer the C ABI wants.
 inline fn handlePtr(handle: anytype) ?*anyopaque {
-    return @ptrFromInt(@intFromEnum(handle));
+    return @ptrCast(handle);
 }
 
 /// Create a VMA allocator. Caller owns it — release with `destroyAllocator`.
@@ -178,13 +178,13 @@ pub fn createBuffer(allocator: *Allocator, info: *const vk.BufferCreateInfo, usa
 pub fn createBufferWithFlags(allocator: *Allocator, info: *const vk.BufferCreateInfo, usage: Usage, flags: Flags) Error!BufferResult {
     var buffer: u64 = 0;
     var alloc: ?*Allocation = null;
-    try check(vma_bridge_create_buffer(allocator, info, @intFromEnum(usage), @bitCast(flags), &buffer, &alloc));
-    return .{ .buffer = @enumFromInt(buffer), .allocation = alloc.? };
+    try check(vma_bridge_create_buffer(allocator, info, @backingInt(usage), @bitCast(flags), &buffer, &alloc));
+    return .{ .buffer = @fromBackingInt(@intCast(buffer)), .allocation = alloc.? };
 }
 
 /// Destroy a buffer and free its allocation (the pair from `createBuffer`).
 pub fn destroyBuffer(allocator: *Allocator, buffer: vk.Buffer, allocation: *Allocation) void {
-    vma_bridge_destroy_buffer(allocator, @intFromEnum(buffer), allocation);
+    vma_bridge_destroy_buffer(allocator, @backingInt(buffer), allocation);
 }
 
 /// Allocate memory and create a `vk.Image` in one call. *(since v0.3.0)*
@@ -197,13 +197,13 @@ pub fn createImage(allocator: *Allocator, info: *const vk.ImageCreateInfo, usage
 pub fn createImageWithFlags(allocator: *Allocator, info: *const vk.ImageCreateInfo, usage: Usage, flags: Flags) Error!ImageResult {
     var image: u64 = 0;
     var alloc: ?*Allocation = null;
-    try check(vma_bridge_create_image(allocator, info, @intFromEnum(usage), @bitCast(flags), &image, &alloc));
-    return .{ .image = @enumFromInt(image), .allocation = alloc.? };
+    try check(vma_bridge_create_image(allocator, info, @backingInt(usage), @bitCast(flags), &image, &alloc));
+    return .{ .image = @fromBackingInt(@intCast(image)), .allocation = alloc.? };
 }
 
 /// Destroy an image and free its allocation (the pair from `createImage`).
 pub fn destroyImage(allocator: *Allocator, image: vk.Image, allocation: *Allocation) void {
-    vma_bridge_destroy_image(allocator, @intFromEnum(image), allocation);
+    vma_bridge_destroy_image(allocator, @backingInt(image), allocation);
 }
 
 /// Map a host-visible allocation and return a pointer to its bytes. Pair with
@@ -232,7 +232,7 @@ pub fn getAllocationInfo(allocator: *Allocator, allocation: *Allocation) Allocat
     vma_bridge_get_allocation_info(allocator, allocation, &memory_type, &device_memory, &offset, &size, &mapped);
     return .{
         .memory_type = memory_type,
-        .device_memory = @enumFromInt(device_memory),
+        .device_memory = @fromBackingInt(@intCast(device_memory)),
         .offset = offset,
         .size = size,
         .mapped_data = if (mapped) |p| @ptrCast(p) else null,

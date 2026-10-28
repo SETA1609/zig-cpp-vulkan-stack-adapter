@@ -41,7 +41,7 @@ test "create: yields a non-null instance with loaded dispatch" {
     const vkb = vk.BaseWrapper.load(volk.getInstanceProcAddr());
     var inst = try Instance.create(std.testing.allocator, vkb, .{});
     defer inst.deinit(std.testing.allocator);
-    try std.testing.expect(inst.handle != .null_handle);
+    try std.testing.expect(@intFromPtr(inst.handle) != 0);
 }
 
 // WHEN deinit-ing then creating again · GIVEN a Vulkan loader · THEN a fresh instance is obtainable (clean teardown frees the owned slices).

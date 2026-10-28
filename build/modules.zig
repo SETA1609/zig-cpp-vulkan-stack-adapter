@@ -2,8 +2,8 @@
 //!
 //! Creates the `vulkan_stack` Zig module (`src/root.zig`), wires the
 //! vulkan-zig typed bindings, builds the VMA C++ bridge (`src/c/vma_bridge.cpp`),
-//! and optionally imports `shaderc_zig` for runtime GLSL→SPIR-V under the
-//! `-Dshaderc` flag. Produces a `vulkan_stack` static-link artifact.
+//! and optionally links the system shaderc library for runtime GLSL→SPIR-V
+//! under the `-Dshaderc` flag. Produces a `vulkan_stack` static-link artifact.
 
 const std = @import("std");
 
@@ -78,27 +78,46 @@ pub fn create(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bui
     vulkan_stack_mod.linkLibrary(vma_bridge_lib);
 
     // --- Platform selection --------------------------------------------------
-    const platform_opt = b.option([]const u8, "platforms",
-        "Target Vulkan surface platforms: x11, wayland, win32, android, metal (space-separated, default: all)") orelse "all";
+    const platform_opt = b.option([]const u8, "platforms", "Target Vulkan surface platforms: x11, wayland, win32, android, metal (space-separated, default: all)") orelse "all";
     const platforms = parsePlatforms(platform_opt, b.allocator);
 
     // --- Shaderc (optional) --------------------------------------------------
-    const enable_shaderc = b.option(bool, "shaderc", "Build runtime GLSL→SPIR-V (fetches + builds shaderc from source)") orelse false;
+    // `-Dshaderc` links the shaderc C library installed on the system
+    // (libshaderc-dev on Debian/Ubuntu, shaderc_shared from the Vulkan SDK
+    // elsewhere). The default build needs no shaderc: embed precompiled SPIR-V.
+    // See docs/shaderc-distribution.md.
+    const enable_shaderc = b.option(bool, "shaderc", "Runtime GLSL→SPIR-V: link the system shaderc library (needs libshaderc-dev or the Vulkan SDK)") orelse false;
     var have_shaderc = false;
     if (enable_shaderc) {
-        if (b.lazyDependency("shaderc_zig", .{ .target = target, .optimize = optimize })) |shaderc_dep| {
-            vulkan_stack_mod.linkLibrary(shaderc_dep.artifact("shaderc"));
-            vulkan_stack_mod.link_libcpp = true;
-            have_shaderc = true;
-        }
+        vulkan_stack_mod.linkSystemLibrary("shaderc", .{});
+        // Zig 0.17 removed @cImport: translate shaderc's header into the
+        // `shaderc_c` module that src/shaderc.zig imports. Linking the system
+        // library here too puts its include paths on the translate-c search path.
+        const shaderc_translate_c = b.addTranslateC(.{
+            .root_source_file = b.path("src/c/shaderc_c.h"),
+            .target = target,
+            .optimize = optimize,
+        });
+        shaderc_translate_c.linkSystemLibrary("shaderc", .{});
+        vulkan_stack_mod.addImport("shaderc_c", shaderc_translate_c.createModule());
+        have_shaderc = true;
+    }
+    if (!have_shaderc) {
+        // Without -Dshaderc, src/shaderc.zig never uses `shaderc_c`; an empty
+        // module keeps the import resolvable.
+        const empty_shaderc_c = b.addWriteFiles().add("shaderc_c.zig", "");
+        vulkan_stack_mod.addImport("shaderc_c", b.createModule(.{ .root_source_file = empty_shaderc_c }));
     }
 
     // --- Build config options that source code can query --------------------
     const build_config = b.addOptions();
-    inline for (@typeInfo(Platform).@"enum".fields) |field| {
-        const p: Platform = @enumFromInt(field.value);
-        const enabled = for (platforms) |ep| { if (ep == p) break true; } else false;
-        build_config.addOption(bool, b.fmt("platform_{s}", .{field.name}), enabled);
+    const platform_info = @typeInfo(Platform).@"enum";
+    inline for (platform_info.field_names, platform_info.field_values) |field_name, field_value| {
+        const p: Platform = @fromBackingInt(@intCast(field_value));
+        const enabled = for (platforms) |ep| {
+            if (ep == p) break true;
+        } else false;
+        build_config.addOption(bool, b.fmt("platform_{s}", .{field_name}), enabled);
     }
     build_config.addOption(bool, "have_shaderc", have_shaderc);
     vulkan_stack_mod.addOptions("build_config", build_config);

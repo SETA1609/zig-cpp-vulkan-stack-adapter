@@ -95,7 +95,7 @@ fn surfacePfn(comptime Pfn: type, instance: vk.Instance, name: [*:0]const u8) Su
 pub fn createX11Surface(instance: vk.Instance, display: *anyopaque, window: u64) SurfaceError!vk.SurfaceKHR {
     const pfn = try surfacePfn(vk.PfnCreateXlibSurfaceKHR, instance, "vkCreateXlibSurfaceKHR");
     const info = vk.XlibSurfaceCreateInfoKHR{ .dpy = @ptrCast(display), .window = @intCast(window) };
-    var surface: vk.SurfaceKHR = .null_handle;
+    var surface: vk.SurfaceKHR = .null;
     return surfaceResult(pfn(instance, &info, null, &surface), surface);
 }
 
@@ -113,7 +113,7 @@ pub fn createWin32Surface(instance: vk.Instance, hinstance: *anyopaque, hwnd: *a
 pub fn createWaylandSurface(instance: vk.Instance, display: *anyopaque, surface: *anyopaque) SurfaceError!vk.SurfaceKHR {
     const pfn = try surfacePfn(vk.PfnCreateWaylandSurfaceKHR, instance, "vkCreateWaylandSurfaceKHR");
     const info = vk.WaylandSurfaceCreateInfoKHR{ .display = @ptrCast(display), .surface = @ptrCast(surface) };
-    var out: vk.SurfaceKHR = .null_handle;
+    var out: vk.SurfaceKHR = .null;
     return surfaceResult(pfn(instance, &info, null, &out), out);
 }
 
@@ -132,7 +132,7 @@ pub fn createAndroidSurface(instance: vk.Instance, window: *anyopaque) SurfaceEr
 pub fn createMetalSurface(instance: vk.Instance, layer: *anyopaque) SurfaceError!vk.SurfaceKHR {
     const pfn = try surfacePfn(vk.PfnCreateMetalSurfaceEXT, instance, "vkCreateMetalSurfaceEXT");
     const info = vk.MetalSurfaceCreateInfoEXT{ .p_layer = @ptrCast(layer) };
-    var surface: vk.SurfaceKHR = .null_handle;
+    var surface: vk.SurfaceKHR = .null;
     return surfaceResult(pfn(instance, &info, null, &surface), surface);
 }
 

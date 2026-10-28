@@ -1,7 +1,7 @@
 //! Ladder step 1 — **shaderc** (`compile`). *(v0.4.0)*
 //!
-//! Pure-CPU GLSL→SPIR-V — no GPU/instance/device. Built from source by
-//! `tiawl/shaderc.zig` and linked only under `-Dshaderc`, so these tests gate on
+//! Pure-CPU GLSL→SPIR-V — no GPU/instance/device. The system shaderc library is
+//! linked only under `-Dshaderc`, so these tests gate on
 //! `shaderc.available` and **auto-skip** unless you build with `-Dshaderc`
 //! (`./scripts/tdd.sh` won't run them; `zig build test-tdd -Dshaderc` will).
 //! See `docs/shaderc-distribution.md`.

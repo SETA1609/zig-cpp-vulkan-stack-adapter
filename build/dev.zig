@@ -22,7 +22,7 @@ pub fn create(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bui
     b.installArtifact(demo);
     const run_cmd = b.addRunArtifact(demo);
     run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_cmd.addArgs(args);
+    run_cmd.addPassthruArgs();
     b.step("run", "Build + run the smoke demo").dependOn(&run_cmd.step);
 
     const pipeline = b.step("pipeline", "Build the vulkan-stack adapter library");

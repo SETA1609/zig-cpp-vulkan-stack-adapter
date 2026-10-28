@@ -66,7 +66,7 @@ Size: **M** · **Not maintainer-tested** — see [`CONTRIBUTING.md`](../CONTRIBU
 Size: **M–L** · mostly infra.
 
 - [ ] **Pin deps to released tags** and document the coherence pin (vulkan-zig's
-      `vk.xml` snapshot · VMA vendor tag · `tiawl/shaderc.zig` tag) — a bump must
+      `vk.xml` snapshot · VMA vendor tag · shaderc version) — a bump must
       move the set atomically (the whole reason the libs are bundled).
 - [ ] **CI matrix.** linux-x64 (X11 + Wayland) running the device-dependent
       volk/VMA/surface/shaderc→`vkCreateShaderModule` tests against a **software

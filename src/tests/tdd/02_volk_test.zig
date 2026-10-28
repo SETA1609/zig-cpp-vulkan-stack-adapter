@@ -45,7 +45,7 @@ test "getInstanceProcAddr: resolves a core command (vkCreateInstance)" {
     try gate(done.loadBase and done.getInstanceProcAddr);
     try volk.loadBase();
     const gipa = volk.getInstanceProcAddr();
-    try std.testing.expect(gipa(.null_handle, "vkCreateInstance") != null);
+    try std.testing.expect(gipa(null, "vkCreateInstance") != null);
 }
 
 // WHEN resolving "vkEnumerateInstanceVersion" via getInstanceProcAddr with a null handle · GIVEN loadBase succeeded · THEN a non-null function pointer is returned.
@@ -53,7 +53,7 @@ test "getInstanceProcAddr: resolves a global command (vkEnumerateInstanceVersion
     try gate(done.loadBase and done.getInstanceProcAddr);
     try volk.loadBase();
     const gipa = volk.getInstanceProcAddr();
-    try std.testing.expect(gipa(.null_handle, "vkEnumerateInstanceVersion") != null);
+    try std.testing.expect(gipa(null, "vkEnumerateInstanceVersion") != null);
 }
 
 // WHEN resolving the bogus name "vkNotARealFunction" via getInstanceProcAddr · GIVEN loadBase succeeded · THEN null is returned.
@@ -61,7 +61,7 @@ test "getInstanceProcAddr: an unknown symbol resolves to null" {
     try gate(done.loadBase and done.getInstanceProcAddr);
     try volk.loadBase();
     const gipa = volk.getInstanceProcAddr();
-    try std.testing.expect(gipa(.null_handle, "vkNotARealFunction") == null);
+    try std.testing.expect(gipa(null, "vkNotARealFunction") == null);
 }
 
 // --- loadInstance (exercised by standing up a context) ---------------------
@@ -71,7 +71,7 @@ test "loadInstance: a context builds and exposes a non-null instance" {
     try gate(done.loadBase and done.getInstanceProcAddr and done.loadInstance);
     var ctx = try h.VkCtx.init();
     defer ctx.deinit();
-    try std.testing.expect(@intFromEnum(ctx.instance) != 0);
+    try std.testing.expect(@intFromPtr(ctx.instance) != 0);
 }
 
 // WHEN calling the instance-level enumeratePhysicalDevices on a built VkCtx · GIVEN loadInstance wired the instance dispatch · THEN it succeeds and reports at least one physical device.
@@ -89,7 +89,7 @@ test "loadInstance: a physical device was selected" {
     try gate(done.loadBase and done.getInstanceProcAddr and done.loadInstance);
     var ctx = try h.VkCtx.init();
     defer ctx.deinit();
-    try std.testing.expect(@intFromEnum(ctx.physical) != 0);
+    try std.testing.expect(@intFromPtr(ctx.physical) != 0);
 }
 
 // --- loadDevice ------------------------------------------------------------
@@ -99,7 +99,7 @@ test "loadDevice: the logical device is non-null" {
     try gate(done.loadBase and done.getInstanceProcAddr and done.loadInstance and done.loadDevice);
     var ctx = try h.VkCtx.init();
     defer ctx.deinit();
-    try std.testing.expect(@intFromEnum(ctx.device) != 0);
+    try std.testing.expect(@intFromPtr(ctx.device) != 0);
 }
 
 // WHEN calling the device-level deviceWaitIdle on a built VkCtx · GIVEN loadDevice wired the device dispatch · THEN it resolves and returns without error.

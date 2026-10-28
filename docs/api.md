@@ -164,8 +164,8 @@ pub fn invalidateAllocation(allocator: *Allocator, allocation: *Allocation, offs
 
 ## `shaderc` — GLSL → SPIR-V  *(since v0.4.0)*
 
-Built from source by `tiawl/shaderc.zig` and linked **only** under `-Dshaderc`
-(a lazy dependency — no system SDK, cross-compiles). Without it, `compile` traps;
+Uses the system shaderc library (libshaderc-dev on Debian/Ubuntu, the Vulkan SDK elsewhere),
+linked **only** under `-Dshaderc`. Without it, `compile` traps;
 branch on `available` to choose runtime compilation vs. embedded SPIR-V. See
 [`shaderc-distribution.md`](shaderc-distribution.md).
 

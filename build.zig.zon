@@ -15,7 +15,7 @@
     .fingerprint = 0x2baea4128131245b,
 
     // Minimum Zig version that can build this package.
-    .minimum_zig_version = "0.16.0",
+    .minimum_zig_version = "0.17.0",
 
     // Zig dependencies.
     //   - vulkan         — Snektron/vulkan-zig: the binding generator. Its
@@ -25,25 +25,17 @@
     //                      `registry/vk.xml` that vulkan-zig generates from.
     //   - vma            — GPUOpen VulkanMemoryAllocator: header-only C++,
     //                      compiled by src/c/vma_bridge.cpp (pinned by commit).
-    //   - shaderc_zig    — tiawl/shaderc.zig: GLSL→SPIR-V built from source.
-    //                      Lazy — only fetched/built under `-Dshaderc`.
+    // shaderc is not a Zig dependency: `-Dshaderc` links the system library
+    // (see build/modules.zig and docs/shaderc-distribution.md).
     // (volk needs no dependency — the loader is reimplemented in pure Zig.)
     .dependencies = .{
         .vulkan = .{
-            .url = "git+https://github.com/Snektron/vulkan-zig.git#b496a6a561ffbbeb530b0f9ed4e059f88c0723a5",
-            .hash = "vulkan-0.0.0-r7Ytx7N9AwD7IZt5_XNHtkJ4G9qY0pCH-cpcOsbL8wzD",
+            .url = "git+https://github.com/Snektron/vulkan-zig.git#91a3537868952be63763db2b0725bcf9cf7f0d93",
+            .hash = "vulkan-0.0.0-r7Ytx1eHAwDInvlQSbl5gMYemczKJa6GimvWcgnOjibX",
         },
         .vulkan_headers = .{
             .url = "git+https://github.com/KhronosGroup/Vulkan-Headers.git#015e25c3c91b70eb1a754d36fb14c4ba6ad9b0b9",
             .hash = "N-V-__8AAHAZeALsJNAOsFHuMyyXDuoFVG48EQdnJGNAZ3Th",
-        },
-        // shaderc (GLSL→SPIR-V) built from source by tiawl/shaderc.zig — fetched
-        // + compiled by `zig build -Dshaderc` only (lazy), so consumers who embed
-        // precompiled SPIR-V never pay the glslang build. See docs/shaderc-distribution.md.
-        .shaderc_zig = .{
-            .url = "git+https://github.com/tiawl/shaderc.zig?ref=zig-0.16.0#7a2c31e137fb2f83fd0384e808e303950e97b157",
-            .hash = "shaderc_zig-1.0.0-mOl84-RfAwDpatEtgzDFe0Nc1iNg-AECkBQYb6LnHvwG",
-            .lazy = true,
         },
         .vma = .{
             .url = "git+https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator#1d8f600fd424278486eade7ed3e877c99f0846b1",

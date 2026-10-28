@@ -4,7 +4,7 @@
 # this with the matching command).
 #   ./scripts/ci.sh                # fmt + build + smoke demo + contract tests
 #   ./scripts/ci.sh clang-format   # C++ bridge style (src/c) — needs clang-format-18
-#   ./scripts/ci.sh shaderc        # build with -Dshaderc (lazy glslang from source)
+#   ./scripts/ci.sh shaderc        # build with -Dshaderc (links the system shaderc)
 #   ./scripts/ci.sh device-tests   # test-tdd -Dshaderc (needs a Vulkan ICD; lavapipe in CI)
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -23,7 +23,7 @@ case "${1:-check}" in
     "$cf" --dry-run -Werror src/c/*.h src/c/*.cpp || exit 1
     ;;
   shaderc)
-    echo "== zig build -Dshaderc (builds shaderc + glslang from source) =="
+    echo "== zig build -Dshaderc (links the system shaderc library) =="
     zig build -Dshaderc || exit 1
     ;;
   device-tests)

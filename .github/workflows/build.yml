@@ -46,7 +46,7 @@ jobs:
       - name: Install Zig
         uses: mlugg/setup-zig@v2
         with:
-          version: 0.16.0
+          version: 0.17.0
           use-cache: true
       - run: zig version
       # fmt + build (vk bindings + VMA C++ bridge) + smoke demo + contract test.
@@ -65,8 +65,7 @@ jobs:
       - name: Check src/c
         run: CLANG_FORMAT=clang-format-18 bash scripts/ci.sh clang-format
 
-  # Proves the opt-in shaderc wiring compiles: fetches the lazy tiawl/shaderc.zig
-  # dep and builds shaderc + glslang + SPIRV-Tools from source (slow cold; cached).
+  # Proves the opt-in shaderc wiring compiles against the system shaderc library.
   shaderc:
     name: shaderc build (-Dshaderc)
     runs-on: ubuntu-latest
@@ -75,8 +74,10 @@ jobs:
       - name: Install Zig
         uses: mlugg/setup-zig@v2
         with:
-          version: 0.16.0
+          version: 0.17.0
           use-cache: true
+      - name: Install the system shaderc library
+        run: sudo apt-get update && sudo apt-get install -y libshaderc-dev
       - run: bash scripts/ci.sh shaderc
 
   # The device-dependent test-tdd suite (volk + VMA) on Mesa lavapipe (software
@@ -93,8 +94,10 @@ jobs:
       - name: Install Zig
         uses: mlugg/setup-zig@v2
         with:
-          version: 0.16.0
+          version: 0.17.0
           use-cache: true
       - name: Install Vulkan loader + lavapipe (software ICD)
         run: python scripts/install_display_deps.py --vulkan-only
+      - name: Install the system shaderc library
+        run: sudo apt-get update && sudo apt-get install -y libshaderc-dev
       - run: bash scripts/ci.sh device-tests

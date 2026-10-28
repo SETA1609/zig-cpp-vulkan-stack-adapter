@@ -3,20 +3,23 @@
 #   docker build -t vk-stack .                         # build the image
 #   docker run --rm vk-stack                           # default: fmt + build + smoke + contract test
 #   docker run --rm vk-stack bash scripts/ci.sh clang-format
-#   docker run --rm vk-stack bash scripts/ci.sh shaderc        # build glslang from source (-Dshaderc)
+#   docker run --rm vk-stack bash scripts/ci.sh shaderc        # build with the system shaderc (-Dshaderc)
 #   docker run --rm vk-stack bash scripts/ci.sh device-tests   # volk/VMA against lavapipe (software Vulkan)
 #
 # Headless by design: lavapipe is the only Vulkan ICD, so device tests need no
 # GPU; the test harness opens no window, so no display is needed. Build deps for
-# the C++ VMA bridge (vulkan headers) and shaderc are vendored / fetched by Zig —
-# no system -dev packages. First `zig build` fetches the pinned deps (network).
+# the C++ VMA bridge (vulkan headers) are vendored / fetched by Zig; -Dshaderc
+# links the system shaderc (libshaderc-dev, from Ubuntu's universe component). First `zig build` fetches the pinned deps (network).
 FROM ubuntu:24.04
-ARG ZIG_VERSION=0.16.0
+ARG ZIG_VERSION=0.17.0
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Ubuntu's image enables main only; libshaderc-dev is in universe.
+RUN sed -i 's/^Components: .*/Components: main universe/' /etc/apt/sources.list.d/ubuntu.sources \
+    && apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates curl xz-utils git python3 python3-pip \
       mesa-vulkan-drivers libvulkan1 vulkan-tools \
+      libshaderc-dev \
       clang-format-18 \
     && rm -rf /var/lib/apt/lists/*
 
