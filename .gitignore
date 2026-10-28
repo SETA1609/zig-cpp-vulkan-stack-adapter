@@ -74,3 +74,9 @@ Testing/
 .zig-cache/
 zig-out/
 zig-pkg/
+
+# Host devops CLI (tools/devops) and its run logs
+.venv/
+.pytest_cache/
+.ruff_cache/
+cache/

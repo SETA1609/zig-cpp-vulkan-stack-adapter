@@ -32,7 +32,7 @@ RUN set -eux; \
     ln -s /opt/zig/zig /usr/local/bin/zig; rm /tmp/zig.tar.xz; zig version
 
 # lavapipe is the sole ICD → device tests run headless, no GPU.
-ENV VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+ENV VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.json
 ENV CLANG_FORMAT=clang-format-18
 
 WORKDIR /work

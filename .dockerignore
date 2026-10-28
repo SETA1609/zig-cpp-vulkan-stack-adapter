@@ -3,5 +3,11 @@
 zig-out
 **/.zig-cache
 **/zig-out
+zig-pkg
+**/zig-pkg
 .git
 **/.git
+# Host devops CLI and its run logs
+.venv
+**/.venv
+cache

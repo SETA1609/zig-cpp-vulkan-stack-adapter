@@ -117,6 +117,8 @@ for that code, but it stays **behind the Zig API**:
 
 - **Zig 0.17.0**; `-Dshaderc` also needs the system shaderc library (`libshaderc-dev` or the Vulkan SDK); `zig build`, `zig build test` (contract suite), `zig build test-tdd` (red→green TDD suite — needs a Vulkan device + `-Dshaderc` for the shaderc sessions).
 - **`./scripts/ci.sh [check|clang-format|shaderc|device-tests]`** runs the CI gates locally; the workflow just installs the toolchain / ICD and calls this same script.
+- **Container with logs:** `./scripts/container.sh ci check` (or `shaderc`, `device-tests`, `clang-format`) and `./scripts/container.sh tdd -Dshaderc` run in the pinned 0.17.0 image, with timestamped logs in `cache/logs/`. Needs uv and docker or podman. Details: [tools/devops/README.md](tools/devops/README.md).
+- **Changelog:** add an entry for your change to `CHANGELOG.md` and update its `Last updated` timestamp.
 - **Reproducible container:** `docker build -t vk-stack .` then `docker run --rm vk-stack` runs the gate in a clean image; `docker run --rm vk-stack bash scripts/ci.sh device-tests` runs the volk/VMA suite against lavapipe (software Vulkan — no GPU).
 - Lint: `zig fmt --check .` + `clang-format-18 --dry-run -Werror` on `src/c` (the `.clang-format` `Standard: Latest` needs clang-format-18). CI runs these, plus a `lint-workflows` job that validates the workflow YAML with the bundled [`check-workflows` skill](.claude/skills/check-workflows).
 
