@@ -118,8 +118,8 @@ prebuilt matching the consumer's target and links it.
 
 **Since the Zig 0.17.0 port: A + 0.** The default build is Option A, as before.
 `zig build -Dshaderc` links the system shaderc library (Option 0), because the
-Option B package is not ported to 0.17 yet (see above). In the project-new-world
-container and in CI, `libshaderc-dev` is installed and the shaderc tests run.
+Option B package is not ported to 0.17 yet (see above). In the Docker image and
+in CI, `libshaderc-dev` is installed and the shaderc tests run.
 
 **Before the port (Zig 0.16): A + B together — no consumer setup either way:**
 

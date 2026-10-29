@@ -2,7 +2,7 @@
 
 Host-side CLI that runs this adapter's Zig toolchain container (`vulkan-stack-adapter:zig-0.17.0`, built from the root `Dockerfile`) and logs every run. It is optional: `scripts/ci.sh` and `scripts/tdd.sh` still work with a local Zig 0.17.0. Use it when your host Zig is a different version, when you have no Vulkan device or no system shaderc, or when you want a log of a run. The image has lavapipe (software Vulkan) and `libshaderc-dev`.
 
-The host needs only [uv](https://docs.astral.sh/uv/) and docker or podman. At runtime the CLI uses only the Python standard library. It is copied from [project-new-world](https://github.com/SETA1609/project-new-world/tree/main/tools/devops), which uses this adapter.
+The host needs only [uv](https://docs.astral.sh/uv/) and docker or podman. At runtime the CLI uses only the Python standard library.
 
 ## Usage
 

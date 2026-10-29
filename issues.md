@@ -106,3 +106,27 @@ recurses without bound. Guard it.
 `content`) rather than calling the user's resolver again. The off-by-one at the
 limit is the easy miss — a file that includes exactly `limit` levels deep must
 still succeed.
+
+---
+
+## Issue 4 — Port to Zig 0.17.0
+
+Status: done (#5)
+
+Move vulkan-zig to `master` and follow its API changes; link the system shaderc under `-Dshaderc` because `tiawl/shaderc.zig` is not ported to 0.17; replace `@cImport` with translate-c. Keep every `scripts/ci.sh` gate green.
+
+---
+
+## Issue 5 — Container devops CLI for contributors
+
+Status: done (#6)
+
+Add the host-side container CLI (`tools/devops/`, `./scripts/container.sh` with `ci [gate]` and `tdd` on lavapipe), a `.zig-version`, and fix the image's lavapipe driver path.
+
+---
+
+## Issue 6 — Own issue tracking
+
+Status: review
+
+Track this repo's work in `issues.md` with its own issue numbers, title changelog entries by those issues, and remove references to other projects' issue IDs from the docs and the changelog.
