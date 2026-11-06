@@ -23,9 +23,9 @@ VMA's headers, vulkan-zig's generated bindings, and shaderc's SPIR-V target **mu
 
 The public API (`src/root.zig` + `volk.zig` / `vma.zig` / `shaderc.zig`) is
 almost entirely implemented: the `vk` re-export, the `volk` loader, the X11 +
-Wayland surface creators, VMA (incl. depth), and shaderc (incl. depth) are real.
-Only `createWin32Surface` / `createAndroidSurface` remain
-`@panic("not implemented")` stubs (see [`docs/completion-plan.md`](docs/completion-plan.md)).
+Wayland + Win32 surface creators, VMA (incl. depth), and shaderc (incl. depth) are real.
+Only `createAndroidSurface` remains a
+`@panic("not implemented")` stub (see [`docs/completion-plan.md`](docs/completion-plan.md)).
 Implementing or extending the library means replacing/adding behind a stub and
 proving it — by an automated test where the result is provable in-process, or by
 an e2e procedure where it needs a live GPU.
@@ -82,7 +82,7 @@ test encodes the wrong contract, fix the test in the same PR and say so.
 | --- | --- | --- | --- | --- | --- |
 | 1 | shaderc | `compile` (+ macros / `target` / `#include` / RT + mesh stages) · `Diagnostics` | **TDD** (`01_`/`05_shaderc*_test.zig`) | v0.4.0 | — |
 | 2 | volk | `loadBase` · `loadInstance` · `loadDevice` | e2e (`manual-testing.md` §1) | v0.2.0 | a Vulkan loader |
-| 3 | surfaces | `createX11Surface` · `createWaylandSurface` (real) · `createWin32Surface` · `createAndroidSurface` (stubbed) | e2e (§2) + **TDD** (`06_surface_win32_android_test.zig`, wiring/type checks) | v0.2.0 / v0.5.0 | 2, a window handle |
+| 3 | surfaces | `createX11Surface` · `createWaylandSurface` · `createWin32Surface` (real) · `createAndroidSurface` (stubbed) | e2e (§2) + **TDD** (`06_surface_win32_android_test.zig`, wiring/type checks) | v0.2.0 / v0.5.0 | 2, a window handle |
 | 4 | VMA | `createAllocator`/`destroyAllocator` · `createBuffer(WithFlags)`/`destroyBuffer` · `createImage(WithFlags)`/`destroyImage` · `mapMemory`/`unmapMemory` · `getAllocationInfo` · `flush`/`invalidateAllocation` | e2e (§3) + **TDD** (`03_`/`04_vma*_test.zig`, needs a device) | v0.3.0 / v0.5.0 | 2, a `VkDevice` |
 | 5 | swapchain | `Swapchain.create`/`deinit`/`recreate`/`toRaw`/`buildCreateInfo` (+ `Options`/`Raw`/`Error`) | **TDD** (`07_swapchain_test.zig`, options/policy + bridge) + e2e (§5, the create path needs a device) | v0.6.0 | 2, a `VkDevice` + surface |
 

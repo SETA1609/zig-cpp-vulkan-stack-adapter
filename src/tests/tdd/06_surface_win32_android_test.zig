@@ -17,7 +17,7 @@ const gate = h.gate;
 const SurfaceError = vk_stack.SurfaceError;
 
 const done = .{
-    .createWin32Surface = false,
+    .createWin32Surface = true,
     .createAndroidSurface = false,
 };
 
@@ -42,6 +42,20 @@ test "createWin32Surface: error set is SurfaceError (exhaustively switchable)" {
         SurfaceError.SurfaceCreationFailed,
         => {},
     }
+}
+
+// WHEN creating a Win32 surface · GIVEN a headless instance that did not enable VK_KHR_win32_surface (any OS, lavapipe in CI) · THEN it returns SurfaceCreationFailed instead of crashing.
+test "createWin32Surface: an instance without VK_KHR_win32_surface gives SurfaceCreationFailed" {
+    try gate(done.createWin32Surface);
+    var ctx = try h.VkCtx.init();
+    defer ctx.deinit();
+    // Never dereferenced: the command is looked up first and is missing on this instance.
+    var placeholder_hinstance: u8 = 0;
+    var placeholder_hwnd: u8 = 0;
+    try std.testing.expectError(
+        SurfaceError.SurfaceCreationFailed,
+        vk_stack.createWin32Surface(ctx.instance, &placeholder_hinstance, &placeholder_hwnd),
+    );
 }
 
 // --- createAndroidSurface --------------------------------------------------

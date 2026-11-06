@@ -1,10 +1,17 @@
 # Changelog
 
-Last updated: 2026-10-29T00:21Z
+Last updated: 2026-11-06T00:26Z
 
 Changes per issue, newest first. Issues are tracked in [issues.md](issues.md). Each PR adds its entry and updates the timestamp above. History before this file: `git log`.
 
 ## Unreleased
+
+### Issue 7 Implement the Win32 surface creator
+
+- `createWin32Surface` calls `vkCreateWin32SurfaceKHR` through `surfacePfn` / `surfaceResult`, like the X11 and Wayland creators; it no longer panics. An instance without `VK_KHR_win32_surface` gets `SurfaceCreationFailed`.
+- `06_surface_win32_android_test.zig`: the Win32 contract tests are ungated, and a new test checks the missing-extension case on a headless instance (lavapipe on Linux).
+- Docs list the Win32 creator as implemented; only `createAndroidSurface` is still a stub.
+- Checked in a Zig 0.17.0 container with lavapipe: `zig build test` 8/8; `zig build test-tdd` 38 passed, 32 skipped, none failed; the contract and TDD test binaries compile for `x86_64-windows-gnu`.
 
 ### Issue 6 Own issue tracking
 
