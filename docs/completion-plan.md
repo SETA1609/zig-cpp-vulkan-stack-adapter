@@ -15,8 +15,8 @@
 (`compile`, **+ depth:** macros, target version, `#include`, ray-tracing +
 task/mesh stages).
 
-🚧 The **two surface functions still `@panic`**: `createWin32Surface`,
-`createAndroidSurface`. The **v0.6.0 `Swapchain` abstraction** is scaffolded —
+🚧 **One surface function still `@panic`s**: `createAndroidSurface`
+(`createWin32Surface` is real since Issue 7). The **v0.6.0 `Swapchain` abstraction** is scaffolded —
 `Swapchain` + `Options` / `Raw` / `Error` and the methods
 `create` / `deinit` / `recreate` / `toRaw` / `buildCreateInfo` exist with their
 final signatures, but every body still `@panic`s.
@@ -25,7 +25,7 @@ final signatures, but every body still `@panic`s.
 
 Size: **S** · CI: build-only on Linux (cross-compile), behavior on real devices.
 
-- [ ] `createWin32Surface` — `vkCreateWin32SurfaceKHR` via the existing
+- [x] `createWin32Surface` — `vkCreateWin32SurfaceKHR` via the existing
       `surfacePfn`/`surfaceResult` helpers (the pattern X11/Wayland use). No SDL.
 - [ ] `createAndroidSurface` — `vkCreateAndroidSurfaceKHR`, same shape.
 - [ ] TDD session `06_surface_win32_android_test.zig` — signature/type checks +

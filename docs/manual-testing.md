@@ -20,8 +20,8 @@ What is **proven today**. The `vk` re-export, the **volk** loader, the **X11 +
 Wayland** surface creators, **VMA** (incl. depth: `getAllocationInfo`,
 `flushAllocation`/`invalidateAllocation`, allocation `Flags`), and **shaderc**
 (incl. depth: macros, target version, `#include`, ray-tracing + task/mesh
-stages) are implemented. Only `createWin32Surface` / `createAndroidSurface`
-remain `@panic("not implemented")`. The automated suites are green; the e2e
+stages) are implemented, and so is `createWin32Surface`. Only `createAndroidSurface`
+remains `@panic("not implemented")`. The automated suites are green; the e2e
 procedures below still need a live-GPU sign-off pass.
 
 **Automated — `zig build test`** (contract/data, must stay green):
@@ -44,7 +44,7 @@ procedures below still need a live-GPU sign-off pass.
 **Manual / e2e** (this document):
 
 - [ ] §1 volk: `loadBase` / `loadInstance` / `loadDevice`
-- [ ] §2 Surface creators: `createX11Surface` / `createWaylandSurface` (real) — `createWin32Surface` / `createAndroidSurface` still stubbed
+- [ ] §2 Surface creators: `createX11Surface` / `createWaylandSurface` / `createWin32Surface` (real) — `createAndroidSurface` still stubbed
 - [ ] §3 VMA: `createAllocator`/`destroyAllocator`, `createBuffer`/`destroyBuffer`, `createImage`/`destroyImage`, `mapMemory`/`unmapMemory` (incl. `gpu_only` map fails, leak gate)
 - [ ] §4 shaderc device-validity (SPIR-V → `vkCreateShaderModule` → pipeline draw)
 - [ ] §5 Cross-library integration (Vulkan clear-color: window → surface → swapchain → present + resize)

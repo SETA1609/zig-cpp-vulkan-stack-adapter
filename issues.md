@@ -130,3 +130,11 @@ Add the host-side container CLI (`tools/devops/`, `./scripts/container.sh` with 
 Status: review
 
 Track this repo's work in `issues.md` with its own issue numbers, title changelog entries by those issues, and remove references to other projects' issue IDs from the docs and the changelog.
+
+---
+
+## Issue 7 — Implement the Win32 surface creator
+
+Status: review
+
+Replace the `createWin32Surface` stub with `vkCreateWin32SurfaceKHR` through the `surfacePfn` / `surfaceResult` helpers the X11 and Wayland creators use. Ungate its tests in `06_surface_win32_android_test.zig` and add one that runs on any OS: an instance without `VK_KHR_win32_surface` returns `SurfaceCreationFailed` instead of crashing. Done when the `windows-latest` CI leg passes.
