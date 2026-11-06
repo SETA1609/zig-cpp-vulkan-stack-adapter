@@ -37,7 +37,7 @@ procedures below still need a live-GPU sign-off pass.
 - [x] VMA core — `createAllocator`/`createBuffer`/`createImage`/`mapMemory` round-trip (`03_vma_test.zig`)
 - [x] VMA depth — `getAllocationInfo`, persistent `mapped`, `flushAllocation`/`invalidateAllocation`, `createBufferWithFlags`/`createImageWithFlags` (`04_vma_advanced_test.zig`)
 - [ ] Surface Win32/Android — contract pins (signatures/types/wiring) for `createWin32Surface` / `createAndroidSurface` (`06_surface_win32_android_test.zig`)
-- [ ] Swapchain — `Swapchain.Options`/policy + `toRaw`/`buildCreateInfo` contract (`07_swapchain_test.zig`); the device-dependent `create` path is e2e (§5)
+- [x] Swapchain — `Swapchain.Options`/policy, `toRaw`/`buildCreateInfo`, and create / recreate / acquire on a headless surface (`07_swapchain_test.zig`); presenting to a window is e2e (§5)
 
 (The VMA TDD sessions need a live Vulkan device; they run where one is present.)
 

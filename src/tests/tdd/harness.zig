@@ -74,3 +74,98 @@ pub const VkCtx = struct {
         return .{ .physical_device = self.physical, .device = self.device, .instance = self.instance };
     }
 };
+
+/// A headless Vulkan context **with a surface**: `VK_EXT_headless_surface` gives a real
+/// `VkSurfaceKHR` with no window, so swapchain create / recreate / acquire run in-process on a
+/// software ICD (lavapipe offers it). The device enables `VK_KHR_swapchain`. `init` returns
+/// `error.SkipZigTest` when the driver lacks the extension or no queue family can present.
+pub const HeadlessSurfaceContext = struct {
+    instance: vk.Instance,
+    physical: vk.PhysicalDevice,
+    device: vk.Device,
+    surface: vk.SurfaceKHR,
+    present_queue_family_index: u32,
+    vki: vk.InstanceWrapper,
+    vkd: vk.DeviceWrapper,
+
+    pub fn init(allocator: std.mem.Allocator) !HeadlessSurfaceContext {
+        try volk.loadBase();
+        const get_instance_proc_address = volk.getInstanceProcAddr();
+        const vkb = vk.BaseWrapper.load(get_instance_proc_address);
+
+        const instance_extensions = try vkb.enumerateInstanceExtensionPropertiesAlloc(null, allocator);
+        defer allocator.free(instance_extensions);
+        if (!hasExtension(instance_extensions, vk.instance_extensions.ext_headless_surface.name)) return error.SkipZigTest;
+
+        const app_info = vk.ApplicationInfo{
+            .application_version = 0,
+            .engine_version = 0,
+            .api_version = @bitCast(vk.API_VERSION_1_3),
+        };
+        const enabled_instance_extensions = [_][*:0]const u8{
+            vk.instance_extensions.khr_surface.name,
+            vk.instance_extensions.ext_headless_surface.name,
+        };
+        const instance = try vkb.createInstance(&.{
+            .p_application_info = &app_info,
+            .enabled_extension_count = enabled_instance_extensions.len,
+            .pp_enabled_extension_names = &enabled_instance_extensions,
+        }, null);
+        volk.loadInstance(instance);
+        const vki = vk.InstanceWrapper.load(instance, get_instance_proc_address);
+        errdefer vki.destroyInstance(instance, null);
+
+        const surface = try vki.createHeadlessSurfaceEXT(instance, &.{}, null);
+        errdefer vki.destroySurfaceKHR(instance, surface, null);
+
+        var physical_device_count: u32 = 1;
+        var physical: vk.PhysicalDevice = undefined;
+        _ = try vki.enumeratePhysicalDevices(instance, &physical_device_count, @ptrCast(&physical));
+        if (physical_device_count == 0) return error.SkipZigTest;
+
+        // Family 0 must present to the surface; lavapipe has one family that does everything.
+        const present_queue_family_index: u32 = 0;
+        if (try vki.getPhysicalDeviceSurfaceSupportKHR(physical, present_queue_family_index, surface) != .true) return error.SkipZigTest;
+
+        const queue_priorities = [_]f32{1.0};
+        const queue_create_infos = [_]vk.DeviceQueueCreateInfo{.{
+            .queue_family_index = present_queue_family_index,
+            .queue_count = 1,
+            .p_queue_priorities = &queue_priorities,
+        }};
+        const enabled_device_extensions = [_][*:0]const u8{vk.device_extensions.khr_swapchain.name};
+        const device = try vki.createDevice(physical, &.{
+            .queue_create_info_count = 1,
+            .p_queue_create_infos = &queue_create_infos,
+            .enabled_extension_count = enabled_device_extensions.len,
+            .pp_enabled_extension_names = &enabled_device_extensions,
+        }, null);
+        volk.loadDevice(device);
+        const vkd = vk.DeviceWrapper.load(device, vki.dispatch.vkGetDeviceProcAddr.?);
+
+        return .{
+            .instance = instance,
+            .physical = physical,
+            .device = device,
+            .surface = surface,
+            .present_queue_family_index = present_queue_family_index,
+            .vki = vki,
+            .vkd = vkd,
+        };
+    }
+
+    pub fn deinit(self: *HeadlessSurfaceContext) void {
+        self.vkd.destroyDevice(self.device, null);
+        self.vki.destroySurfaceKHR(self.instance, self.surface, null);
+        self.vki.destroyInstance(self.instance, null);
+    }
+
+    fn hasExtension(extensions: []const vk.ExtensionProperties, wanted_name: [*:0]const u8) bool {
+        const wanted = std.mem.span(wanted_name);
+        for (extensions) |extension| {
+            const name = std.mem.sliceTo(&extension.extension_name, 0);
+            if (std.mem.eql(u8, name, wanted)) return true;
+        }
+        return false;
+    }
+};
