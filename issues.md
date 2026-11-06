@@ -138,3 +138,11 @@ Track this repo's work in `issues.md` with its own issue numbers, title changelo
 Status: review
 
 Replace the `createWin32Surface` stub with `vkCreateWin32SurfaceKHR` through the `surfacePfn` / `surfaceResult` helpers the X11 and Wayland creators use. Ungate its tests in `06_surface_win32_android_test.zig` and add one that runs on any OS: an instance without `VK_KHR_win32_surface` returns `SurfaceCreationFailed` instead of crashing. Done when the `windows-latest` CI leg passes.
+
+---
+
+## Issue 8 — Implement the swapchain helper
+
+Status: doing
+
+Fill the `Swapchain` stubs (the v0.6.0 milestone in `docs/ROADMAP.md`): `create`, `deinit`, `recreate` on resize or `error.OutOfDateKHR` with the old swapchain handed over, `toRaw`, and `buildCreateInfo`, with the format, present mode, image count, and extent policy as pure `select*` functions. `recreate` takes the new extent for surfaces that let the swapchain choose (Wayland, headless), and a 0×0 surface is `SurfaceHasZeroExtent`. Test create, recreate, and acquire on a real surface from `VK_EXT_headless_surface`, so they run on lavapipe with no window. Done when `07_swapchain_test.zig` runs ungated and passes in the `test-tdd` CI leg.

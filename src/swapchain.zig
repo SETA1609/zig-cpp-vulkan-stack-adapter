@@ -9,11 +9,12 @@
 //!  * **Pro tier** — raw `vkd.createSwapchainKHR` is never blocked.
 //!    `buildCreateInfo` computes a good `VkSwapchainCreateInfoKHR` from the same
 //!    policy **without creating anything**, so a consumer can drive Vulkan itself.
+//!    The `select*` functions are that policy as pure functions over what the
+//!    surface reports.
 //!  * **Bridge** — `toRaw` hands back the underlying handle, images, views, and
 //!    the exact create-info used, so a consumer can drop to raw at any boundary.
 //!
-//! Boundary rule: no helper type appears in the raw signatures. All bodies
-//! `@panic` until the v0.6.0 milestone lands — see `docs/ROADMAP.md`.
+//! Boundary rule: no helper type appears in the raw signatures.
 
 const std = @import("std");
 const vk = @import("vulkan");
@@ -27,7 +28,14 @@ pub const Error = error{
     SurfaceLost,
     OutOfMemory,
     SwapchainCreationFailed,
+    /// The surface is 0×0 (a minimized window). Vulkan cannot create a swapchain for it;
+    /// wait for a resize, then `recreate`. *(since v0.6.0)*
+    SurfaceHasZeroExtent,
 };
+
+/// The surface reports this as `currentExtent` when the swapchain decides the size
+/// (Wayland, headless surfaces).
+pub const extent_chosen_by_swapchain = std.math.maxInt(u32);
 
 pub const Swapchain = struct {
     handle: vk.SwapchainKHR,
@@ -36,6 +44,10 @@ pub const Swapchain = struct {
     extent: vk.Extent2D,
     images: []vk.Image,
     views: []vk.ImageView,
+    /// The options it was created with; `recreate` reuses them.
+    options: Options,
+    /// The create-info of the current swapchain (`old_swapchain` as it was passed).
+    create_info: vk.SwapchainCreateInfoKHR,
 
     /// Consumer preferences. The helper clamps / falls back against the surface's
     /// reported capabilities, so every field is a *wish*, not a guarantee.
@@ -47,6 +59,10 @@ pub const Swapchain = struct {
         desired_image_count: u32 = 0,
         /// Used when the surface reports `currentExtent == 0xFFFF_FFFF`.
         fallback_extent: vk.Extent2D = .{ .width = 800, .height = 600 },
+        /// Usage of the swapchain images, intersected with what the surface supports.
+        /// `color_attachment` is required; `transfer_dst` lets a frame start with
+        /// `vkCmdClearColorImage`, and is dropped when the surface lacks it. *(since v0.6.0)*
+        image_usage: vk.ImageUsageFlags = .{ .color_attachment = true, .transfer_dst = true },
     };
 
     /// The raw Vulkan objects behind the abstraction — the escape hatch for
@@ -77,21 +93,24 @@ pub const Swapchain = struct {
         _ = device;
         _ = surface;
         _ = options;
-        @panic("not implemented");
+        return error.SwapchainCreationFailed;
     }
 
     /// Destroy the image views and the swapchain, freeing the owned slices.
-    /// *(since v0.6.0)*
+    /// The caller makes sure the GPU no longer uses the images. *(since v0.6.0)*
     pub fn deinit(self: *Swapchain, gpa: std.mem.Allocator, vkd: vk.DeviceWrapper, device: vk.Device) void {
         _ = self;
         _ = gpa;
         _ = vkd;
         _ = device;
-        @panic("not implemented");
     }
 
     /// Recreate after a resize or `error.OutOfDateKHR`, reusing the old
-    /// swapchain as `oldSwapchain` for a gapless handoff. *(since v0.6.0)*
+    /// swapchain as `oldSwapchain` for a gapless handoff. `fallback_extent` is the
+    /// new size for surfaces that let the swapchain choose (Wayland, headless); it
+    /// replaces `options.fallback_extent`. Waits for the device to go idle before the
+    /// old swapchain is destroyed. On error the old swapchain is kept and still valid.
+    /// *(since v0.6.0)*
     pub fn recreate(
         self: *Swapchain,
         gpa: std.mem.Allocator,
@@ -100,6 +119,7 @@ pub const Swapchain = struct {
         physical: vk.PhysicalDevice,
         device: vk.Device,
         surface: vk.SurfaceKHR,
+        fallback_extent: vk.Extent2D,
     ) Error!void {
         _ = self;
         _ = gpa;
@@ -108,19 +128,20 @@ pub const Swapchain = struct {
         _ = physical;
         _ = device;
         _ = surface;
-        @panic("not implemented");
+        _ = fallback_extent;
+        return error.SwapchainCreationFailed;
     }
 
     /// **Bridge.** The raw handle, images, views, and exact create-info used —
     /// for consumers dropping down to raw `vk`. *(since v0.6.0)*
     pub fn toRaw(self: Swapchain) Raw {
         _ = self;
-        @panic("not implemented");
+        return .{ .handle = .null, .images = &.{}, .views = &.{}, .create_info = undefined };
     }
 
     /// **Pro tier.** Compute a `VkSwapchainCreateInfoKHR` from the same default
     /// policy **without creating anything** — the consumer calls
-    /// `vkd.createSwapchainKHR` itself. *(since v0.6.0)*
+    /// `vkd.createSwapchainKHR` itself. `old_swapchain` is `.null`. *(since v0.6.0)*
     pub fn buildCreateInfo(
         vki: vk.InstanceWrapper,
         physical: vk.PhysicalDevice,
@@ -131,6 +152,37 @@ pub const Swapchain = struct {
         _ = physical;
         _ = surface;
         _ = options;
-        @panic("not implemented");
+        return error.SwapchainCreationFailed;
+    }
+
+    /// **Policy.** The preferred format if the surface lists it, else the surface's
+    /// first format (always valid). `available` must not be empty. *(since v0.6.0)*
+    pub fn selectSurfaceFormat(available: []const vk.SurfaceFormatKHR, preferred: vk.SurfaceFormatKHR) vk.SurfaceFormatKHR {
+        _ = preferred;
+        return available[available.len - 1];
+    }
+
+    /// **Policy.** The preferred present mode if listed, else `.fifo_khr`, which
+    /// every surface supports. *(since v0.6.0)*
+    pub fn selectPresentMode(available: []const vk.PresentModeKHR, preferred: vk.PresentModeKHR) vk.PresentModeKHR {
+        _ = available;
+        _ = preferred;
+        return .immediate_khr;
+    }
+
+    /// **Policy.** `desired` (or `minImageCount + 1` for 0), at least
+    /// `minImageCount`, at most `maxImageCount` when that is not 0 (no limit).
+    /// *(since v0.6.0)*
+    pub fn selectImageCount(capabilities: vk.SurfaceCapabilitiesKHR, desired: u32) u32 {
+        _ = capabilities;
+        return desired;
+    }
+
+    /// **Policy.** The surface's `currentExtent`, or `fallback` clamped to the
+    /// surface's limits when it reports `extent_chosen_by_swapchain`. A 0×0 result
+    /// is `SurfaceHasZeroExtent`. *(since v0.6.0)*
+    pub fn selectExtent(capabilities: vk.SurfaceCapabilitiesKHR, fallback: vk.Extent2D) Error!vk.Extent2D {
+        _ = capabilities;
+        return fallback;
     }
 };

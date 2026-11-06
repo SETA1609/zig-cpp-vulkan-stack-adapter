@@ -49,6 +49,10 @@ pub const Swapchain = @import("swapchain.zig").Swapchain;
 /// Errors the `Swapchain` helper can return. *(since v0.6.0)*
 pub const SwapchainError = @import("swapchain.zig").Error;
 
+/// The `currentExtent` a surface reports when the swapchain picks its size (Wayland,
+/// headless). *(since v0.6.0)*
+pub const swapchain_extent_chosen_by_swapchain = @import("swapchain.zig").extent_chosen_by_swapchain;
+
 /// Opt-in **`Instance` bootstrap helper** — the first of the v0.7 `vk-bootstrap`-
 /// style helpers (api version + extension/layer policy over `vkb.createInstance`).
 /// Raw instance creation stays first-class; see `instance.zig`. *(since v0.7.0)*
