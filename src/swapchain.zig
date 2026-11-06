@@ -86,23 +86,18 @@ pub const Swapchain = struct {
         surface: vk.SurfaceKHR,
         options: Options,
     ) Error!Swapchain {
-        _ = gpa;
-        _ = vki;
-        _ = vkd;
-        _ = physical;
-        _ = device;
-        _ = surface;
-        _ = options;
-        return error.SwapchainCreationFailed;
+        const create_info = try buildCreateInfo(vki, physical, surface, options);
+        return createFromInfo(gpa, vkd, device, create_info, options);
     }
 
     /// Destroy the image views and the swapchain, freeing the owned slices.
     /// The caller makes sure the GPU no longer uses the images. *(since v0.6.0)*
     pub fn deinit(self: *Swapchain, gpa: std.mem.Allocator, vkd: vk.DeviceWrapper, device: vk.Device) void {
-        _ = self;
-        _ = gpa;
-        _ = vkd;
-        _ = device;
+        destroyViews(vkd, device, self.views);
+        vkd.destroySwapchainKHR(device, self.handle, null);
+        gpa.free(self.views);
+        gpa.free(self.images);
+        self.* = undefined;
     }
 
     /// Recreate after a resize or `error.OutOfDateKHR`, reusing the old
@@ -121,22 +116,22 @@ pub const Swapchain = struct {
         surface: vk.SurfaceKHR,
         fallback_extent: vk.Extent2D,
     ) Error!void {
-        _ = self;
-        _ = gpa;
-        _ = vki;
-        _ = vkd;
-        _ = physical;
-        _ = device;
-        _ = surface;
-        _ = fallback_extent;
-        return error.SwapchainCreationFailed;
+        var options = self.options;
+        options.fallback_extent = fallback_extent;
+        var create_info = try buildCreateInfo(vki, physical, surface, options);
+        create_info.old_swapchain = self.handle;
+        // The old images may still be in flight; nothing below may destroy them before this.
+        vkd.deviceWaitIdle(device) catch |wait_error| return mapVulkanError(wait_error);
+        const replacement = try createFromInfo(gpa, vkd, device, create_info, options);
+        // The retired swapchain stays valid until destroyed, so a failure above kept it usable.
+        self.deinit(gpa, vkd, device);
+        self.* = replacement;
     }
 
     /// **Bridge.** The raw handle, images, views, and exact create-info used —
     /// for consumers dropping down to raw `vk`. *(since v0.6.0)*
     pub fn toRaw(self: Swapchain) Raw {
-        _ = self;
-        return .{ .handle = .null, .images = &.{}, .views = &.{}, .create_info = undefined };
+        return .{ .handle = self.handle, .images = self.images, .views = self.views, .create_info = self.create_info };
     }
 
     /// **Pro tier.** Compute a `VkSwapchainCreateInfoKHR` from the same default
@@ -148,41 +143,162 @@ pub const Swapchain = struct {
         surface: vk.SurfaceKHR,
         options: Options,
     ) Error!vk.SwapchainCreateInfoKHR {
-        _ = vki;
-        _ = physical;
-        _ = surface;
-        _ = options;
-        return error.SwapchainCreationFailed;
+        const capabilities = vki.getPhysicalDeviceSurfaceCapabilitiesKHR(physical, surface) catch |query_error|
+            return mapVulkanError(query_error);
+
+        var format_buffer: [max_listed_surface_formats]vk.SurfaceFormatKHR = undefined;
+        var format_count: u32 = format_buffer.len;
+        // `incomplete` (more formats than the buffer) is a success code: the first ones are enough.
+        _ = vki.getPhysicalDeviceSurfaceFormatsKHR(physical, surface, &format_count, &format_buffer) catch |query_error|
+            return mapVulkanError(query_error);
+        if (format_count == 0) return error.SwapchainCreationFailed;
+
+        var present_mode_buffer: [max_listed_present_modes]vk.PresentModeKHR = undefined;
+        var present_mode_count: u32 = present_mode_buffer.len;
+        _ = vki.getPhysicalDeviceSurfacePresentModesKHR(physical, surface, &present_mode_count, &present_mode_buffer) catch |query_error|
+            return mapVulkanError(query_error);
+
+        var image_usage = options.image_usage.intersect(capabilities.supported_usage_flags);
+        if (!image_usage.color_attachment) return error.SwapchainCreationFailed;
+        image_usage.color_attachment = true;
+
+        const format = selectSurfaceFormat(format_buffer[0..format_count], options.preferred_format);
+        return .{
+            .surface = surface,
+            .min_image_count = selectImageCount(capabilities, options.desired_image_count),
+            .image_format = format.format,
+            .image_color_space = format.color_space,
+            .image_extent = try selectExtent(capabilities, options.fallback_extent),
+            .image_array_layers = 1,
+            .image_usage = image_usage,
+            .image_sharing_mode = .exclusive,
+            .pre_transform = capabilities.current_transform,
+            .composite_alpha = selectCompositeAlpha(capabilities.supported_composite_alpha),
+            .present_mode = selectPresentMode(present_mode_buffer[0..present_mode_count], options.preferred_present_mode),
+            .clipped = .true,
+            .old_swapchain = .null,
+        };
     }
 
     /// **Policy.** The preferred format if the surface lists it, else the surface's
     /// first format (always valid). `available` must not be empty. *(since v0.6.0)*
     pub fn selectSurfaceFormat(available: []const vk.SurfaceFormatKHR, preferred: vk.SurfaceFormatKHR) vk.SurfaceFormatKHR {
-        _ = preferred;
-        return available[available.len - 1];
+        for (available) |candidate| {
+            if (candidate.format == preferred.format and candidate.color_space == preferred.color_space) return candidate;
+        }
+        return available[0];
     }
 
     /// **Policy.** The preferred present mode if listed, else `.fifo_khr`, which
     /// every surface supports. *(since v0.6.0)*
     pub fn selectPresentMode(available: []const vk.PresentModeKHR, preferred: vk.PresentModeKHR) vk.PresentModeKHR {
-        _ = available;
-        _ = preferred;
-        return .immediate_khr;
+        for (available) |candidate| if (candidate == preferred) return candidate;
+        return .fifo_khr;
     }
 
     /// **Policy.** `desired` (or `minImageCount + 1` for 0), at least
     /// `minImageCount`, at most `maxImageCount` when that is not 0 (no limit).
     /// *(since v0.6.0)*
     pub fn selectImageCount(capabilities: vk.SurfaceCapabilitiesKHR, desired: u32) u32 {
-        _ = capabilities;
-        return desired;
+        var image_count = if (desired == 0) capabilities.min_image_count + 1 else desired;
+        image_count = @max(image_count, capabilities.min_image_count);
+        if (capabilities.max_image_count != 0) image_count = @min(image_count, capabilities.max_image_count);
+        return image_count;
     }
 
     /// **Policy.** The surface's `currentExtent`, or `fallback` clamped to the
     /// surface's limits when it reports `extent_chosen_by_swapchain`. A 0×0 result
     /// is `SurfaceHasZeroExtent`. *(since v0.6.0)*
     pub fn selectExtent(capabilities: vk.SurfaceCapabilitiesKHR, fallback: vk.Extent2D) Error!vk.Extent2D {
-        _ = capabilities;
-        return fallback;
+        const extent: vk.Extent2D = if (capabilities.current_extent.width != extent_chosen_by_swapchain)
+            capabilities.current_extent
+        else if (fallback.width == 0 or fallback.height == 0)
+            // A 0x0 request stays 0x0, even when the surface's minimum is larger.
+            .{ .width = 0, .height = 0 }
+        else
+            .{
+                .width = std.math.clamp(fallback.width, capabilities.min_image_extent.width, capabilities.max_image_extent.width),
+                .height = std.math.clamp(fallback.height, capabilities.min_image_extent.height, capabilities.max_image_extent.height),
+            };
+        if (extent.width == 0 or extent.height == 0) return error.SurfaceHasZeroExtent;
+        return extent;
+    }
+
+    fn createFromInfo(
+        gpa: std.mem.Allocator,
+        vkd: vk.DeviceWrapper,
+        device: vk.Device,
+        create_info: vk.SwapchainCreateInfoKHR,
+        options: Options,
+    ) Error!Swapchain {
+        const handle = vkd.createSwapchainKHR(device, &create_info, null) catch |create_error|
+            return mapVulkanError(create_error);
+        errdefer vkd.destroySwapchainKHR(device, handle, null);
+
+        const images = vkd.getSwapchainImagesAllocKHR(device, handle, gpa) catch |query_error|
+            return mapVulkanError(query_error);
+        errdefer gpa.free(images);
+
+        const views = try gpa.alloc(vk.ImageView, images.len);
+        errdefer gpa.free(views);
+        var created_view_count: usize = 0;
+        errdefer destroyViews(vkd, device, views[0..created_view_count]);
+        for (images, views) |image, *view| {
+            view.* = vkd.createImageView(device, &.{
+                .image = image,
+                .view_type = .@"2d",
+                .format = create_info.image_format,
+                .components = .{ .r = .identity, .g = .identity, .b = .identity, .a = .identity },
+                .subresource_range = .{
+                    .aspect_mask = .{ .color = true },
+                    .base_mip_level = 0,
+                    .level_count = 1,
+                    .base_array_layer = 0,
+                    .layer_count = 1,
+                },
+            }, null) catch |create_error| return mapVulkanError(create_error);
+            created_view_count += 1;
+        }
+
+        return .{
+            .handle = handle,
+            .format = .{ .format = create_info.image_format, .color_space = create_info.image_color_space },
+            .present_mode = create_info.present_mode,
+            .extent = create_info.image_extent,
+            .images = images,
+            .views = views,
+            .options = options,
+            .create_info = create_info,
+        };
     }
 };
+
+/// Formats and present modes read per query; surfaces list far fewer.
+const max_listed_surface_formats = 64;
+const max_listed_present_modes = 16;
+
+fn destroyViews(vkd: vk.DeviceWrapper, device: vk.Device, views: []const vk.ImageView) void {
+    for (views) |view| vkd.destroyImageView(device, view, null);
+}
+
+/// Opaque when the surface allows it (almost every desktop surface), else the first mode it
+/// supports, so creation never fails over compositing.
+fn selectCompositeAlpha(supported: vk.CompositeAlphaFlagsKHR) vk.CompositeAlphaFlagsKHR {
+    if (supported.opaque_khr) return .{ .opaque_khr = true };
+    if (supported.inherit_khr) return .{ .inherit_khr = true };
+    if (supported.pre_multiplied_khr) return .{ .pre_multiplied_khr = true };
+    if (supported.post_multiplied_khr) return .{ .post_multiplied_khr = true };
+    return .{ .opaque_khr = true };
+}
+
+/// The swapchain error for any Vulkan error from the calls above.
+fn mapVulkanError(vulkan_error: anyerror) Error {
+    return switch (vulkan_error) {
+        error.OutOfHostMemory => error.OutOfHostMemory,
+        error.OutOfDeviceMemory => error.OutOfDeviceMemory,
+        error.OutOfMemory => error.OutOfMemory,
+        error.DeviceLost => error.DeviceLost,
+        error.SurfaceLostKHR => error.SurfaceLost,
+        else => error.SwapchainCreationFailed,
+    };
+}
