@@ -100,12 +100,14 @@ pub fn createX11Surface(instance: vk.Instance, display: *anyopaque, window: u64)
 }
 
 /// Create a surface for a **Win32** window. `hinstance` is the module
-/// `HINSTANCE`, `hwnd` the window `HWND`. *(since v0.2.0)*
+/// `HINSTANCE`, `hwnd` the window `HWND`. The instance must enable
+/// `VK_KHR_win32_surface`; without it this returns `SurfaceCreationFailed`.
+/// *(since v0.2.0; implemented in v0.5.0)*
 pub fn createWin32Surface(instance: vk.Instance, hinstance: *anyopaque, hwnd: *anyopaque) SurfaceError!vk.SurfaceKHR {
-    _ = instance;
-    _ = hinstance;
-    _ = hwnd;
-    @panic("not implemented");
+    const pfn = try surfacePfn(vk.PfnCreateWin32SurfaceKHR, instance, "vkCreateWin32SurfaceKHR");
+    const info = vk.Win32SurfaceCreateInfoKHR{ .hinstance = @ptrCast(hinstance), .hwnd = @ptrCast(hwnd) };
+    var surface: vk.SurfaceKHR = .null;
+    return surfaceResult(pfn(instance, &info, null, &surface), surface);
 }
 
 /// Create a surface for a **Wayland** surface. `display` is the
