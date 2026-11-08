@@ -18,8 +18,8 @@ task/mesh stages).
 🚧 **One surface function still `@panic`s**: `createAndroidSurface`
 (`createWin32Surface` is real since Issue 7). The **v0.6.0 `Swapchain` abstraction** is
 implemented since Issue 8: `create` / `deinit` / `recreate` / `toRaw` / `buildCreateInfo`
-and the `select*` policy, tested on a headless surface; the raw-only tree-shake check is
-still open.
+and the `select*` policy, tested on a headless surface, released as v0.6.0. The raw-only
+tree-shake check is part of v1.0.0 (see [`ROADMAP.md`](ROADMAP.md)).
 
 ## Phase V1 — finish per-OS surfaces (closes v0.5.0)
 
