@@ -1,18 +1,23 @@
 # Changelog
 
-Last updated: 2026-11-08T04:00Z
+Last updated: 2026-11-08T14:16Z
 
 Changes per issue, newest first. Issues are tracked in [issues.md](issues.md). An issue branch adds its entry as `changes/issue-<n>.md` (see [changes/README.md](changes/README.md)); a release branch moves the entries into a version section here. History before this file: `git log`.
 
 ## v0.6.0 (2026-11-08)
 
-The first tagged release. It holds everything below that was unreleased: the swapchain helper (Issue 8), the Win32 surface creator (Issue 7), and this repository's own issue tracking (Issue 6), on top of the untagged v0.1.0–v0.5.0 milestones in [docs/ROADMAP.md](docs/ROADMAP.md).
+The first tagged release. It holds everything below that was unreleased: the surface format documentation (Issue 9), the swapchain helper (Issue 8), the Win32 surface creator (Issue 7), and this repository's own issue tracking (Issue 6), on top of the untagged v0.1.0–v0.5.0 milestones in [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ### Release bookkeeping
 
 - `docs/ROADMAP.md`: a *Releases* section (issue branches add changelog fragments; bookkeeping branches edit the roadmap, the changelog, the issue statuses, and `.version`; one minor release per milestone, tagged on `main`, never moved). Milestones re-scoped so `main` is a finished v0.6.0: the Metal surface counts in v0.5.0; the Android surface, its tests, the cross-compile legs, and the manual end-to-end walk move to a new v0.8.0; the tree-shake check moves to v1.0.0.
 - `changes/README.md` and `devops-tools.toml`: changelog fragments, checked and released with the shared devops-tools package.
-- `build.zig.zon`: `.version` 0.6.0. `issues.md`: Issues 6, 7, and 8 are done.
+- `build.zig.zon`: `.version` 0.6.0. `issues.md`: Issues 6, 7, 8, and 9 are done.
+
+### Issue 9 Document the surface format types
+
+- `docs/api.md` has a "Surface formats" section: `vk.Format` and `vk.ColorSpaceKHR` are vulkan-zig's generated enums and this library adds none. It covers how the names map to Vulkan's, where the full list is, the common formats and colour spaces, the extension the wider colour spaces need, and why a consumer reads the result from `Swapchain.format`.
+- Documentation only; no code changes.
 
 ### Issue 8 Implement the swapchain helper
 

@@ -131,6 +131,70 @@ pub const Swapchain = struct {
 };
 ```
 
+### Surface formats
+
+This library defines **no format enum of its own**. `Options.preferred_format` and
+`Swapchain.format` are a `vk.SurfaceFormatKHR`, a struct of two enums that vulkan-zig
+generates from `vk.xml`:
+
+```zig
+pub const SurfaceFormatKHR = extern struct {
+    format: Format,             // how a pixel is stored
+    color_space: ColorSpaceKHR, // how the presentation engine interprets those values
+};
+```
+
+**Names.** Each value is the Vulkan name without its type prefix, in lower case:
+`VK_FORMAT_B8G8R8A8_SRGB` is `.b8g8r8a8_srgb`, and
+`VK_COLOR_SPACE_SRGB_NONLINEAR_KHR` is `.srgb_nonlinear_khr`.
+
+**The full list.** Search for `VkFormat` and `VkColorSpaceKHR` in the Vulkan
+specification, or for `pub const Format = enum` and `pub const ColorSpaceKHR = enum`
+in the `vk.zig` your build generates. The values follow the `vulkan_headers` version
+pinned in `build.zig.zon`. Numeric values are Vulkan's own, so
+[`enum-values.md`](enum-values.md) does not list them.
+
+Formats that surfaces commonly list:
+
+| `vk.Format` | Bytes in memory | Encoding on write |
+|---|---|---|
+| `.b8g8r8a8_srgb` (the default) | blue, green, red, alpha; 8 bits each | Linear shader output is encoded to the standard red-green-blue (sRGB) curve by the hardware. |
+| `.r8g8b8a8_srgb` | red, green, blue, alpha; 8 bits each | Same. |
+| `.b8g8r8a8_unorm` | blue, green, red, alpha; 8 bits each | None. The shader writes values that are already encoded. |
+| `.r8g8b8a8_unorm` | red, green, blue, alpha; 8 bits each | None. |
+| `.a2b10g10r10_unorm_pack32` | one 32-bit word; 10 bits per colour, 2 bits of alpha | None. |
+| `.r16g16b16a16_sfloat` | red, green, blue, alpha; 16-bit floats | None. Usually paired with `.extended_srgb_linear_ext`. |
+
+Colour spaces:
+
+| `vk.ColorSpaceKHR` | Meaning | Needs |
+|---|---|---|
+| `.srgb_nonlinear_khr` (the default) | The standard red-green-blue colour space. | `VK_KHR_surface` |
+| `.extended_srgb_linear_ext` | The same primaries, linear, with values allowed outside 0 to 1. | Instance extension `VK_EXT_swapchain_colorspace` |
+| `.hdr10_st2084_ext` | High dynamic range: the wide BT.2020 primaries with the SMPTE ST 2084 curve. | Instance extension `VK_EXT_swapchain_colorspace` |
+
+Every other value numbered `1000104xxx` also comes from `VK_EXT_swapchain_colorspace`,
+and this library does not enable that extension for you.
+
+**Rules when choosing one:**
+
+- A surface supports only the **pairs** it lists, so a format and a colour space that
+  are each listed may still not be listed together. `selectSurfaceFormat` compares both
+  fields.
+- `preferred_format` is a wish. When the surface does not list that pair, the helper
+  takes the surface's **first** listed pair without an error, and that pair may have a
+  different encoding. Build pipelines from `Swapchain.format.format`, and read the
+  encoding from it instead of assuming your preference was met.
+- Both enums are non-exhaustive (they end in `_`), because a driver can report a value
+  newer than the pinned headers. A `switch` over one needs an `else` or `_` prong.
+
+```zig
+const swapchain = try vk_stack.Swapchain.create(gpa, vki, vkd, physical, device, surface, .{
+    .preferred_format = .{ .format = .r8g8b8a8_unorm, .color_space = .srgb_nonlinear_khr },
+});
+const color_attachment_format: vk.Format = swapchain.format.format; // what the surface gave you
+```
+
 ## `vma` — GPU memory allocator  *(since v0.3.0)*
 
 Idiomatic Zig over VMA's C++ (through a `noexcept` C bridge). *Shapes are suggestions.*

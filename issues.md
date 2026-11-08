@@ -148,3 +148,11 @@ Replace the `createWin32Surface` stub with `vkCreateWin32SurfaceKHR` through the
 Status: done (#9)
 
 Fill the `Swapchain` stubs (the v0.6.0 milestone in `docs/ROADMAP.md`): `create`, `deinit`, `recreate` on resize or `error.OutOfDateKHR` with the old swapchain handed over, `toRaw`, and `buildCreateInfo`, with the format, present mode, image count, and extent policy as pure `select*` functions. `recreate` takes the new extent for surfaces that let the swapchain choose (Wayland, headless), and a 0×0 surface is `SurfaceHasZeroExtent`. Test create, recreate, and acquire on a real surface from `VK_EXT_headless_surface`, so they run on lavapipe with no window. Done when `07_swapchain_test.zig` runs ungated and passes in the `test-tdd` CI leg.
+
+---
+
+## Issue 9 — Document the surface format types
+
+Status: done (#11)
+
+`Swapchain.Options.preferred_format` takes vulkan-zig's types, and `docs/api.md` does not say what they are, so a reader may expect a format enum from this library. Document in `docs/api.md` that `vk.Format` and `vk.ColorSpaceKHR` are vulkan-zig's enums and that this library adds none: how the names map to Vulkan's, where the full list is, the common surface formats, and why a consumer reads the result from `Swapchain.format`. Documentation only. Done when the section names only values that exist in the pinned `vk.xml`.
