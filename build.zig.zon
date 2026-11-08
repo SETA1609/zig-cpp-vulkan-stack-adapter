@@ -7,7 +7,7 @@
     // (root.zig re-exports). Major Vulkan version transitions
     // (1.x → 1.x+1) bump the MAJOR version since vk.xml regeneration
     // can change generated symbols.
-    .version = "0.0.0",
+    .version = "0.6.0",
 
     // Stable u64 fingerprint identifying this package across renames
     // and forks. Generated once and kept constant. `zig fetch --save`

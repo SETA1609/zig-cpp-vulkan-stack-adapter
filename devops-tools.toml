@@ -1,0 +1,5 @@
+# Settings for the shared devops-tools package (https://github.com/SETA1609/devops_tools),
+# read with `--settings-file devops-tools.toml`. Only the changelog fragments use it.
+[tool.devops-tools]
+# Issues are numbered in issues.md; fragments are changes/issue-<n>.md, branches issue-<n>-<slug>.
+issue-id-pattern = 'issue-[0-9]+'

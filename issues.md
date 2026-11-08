@@ -8,6 +8,8 @@ compiled in only under `-Dshaderc` (its tests gate on `shaderc.available`); the
 device-dependent VMA/volk tests run against a Vulkan ICD (lavapipe in CI). TDD
 suite: `src/tests/tdd/`.
 
+Statuses (`todo`, `done (#pull-request)`, `dropped`) and new issues are edited only on bookkeeping branches; an issue branch adds its changelog fragment instead. See *Releases* in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+
 ---
 
 ## Issue 1 — Add a GLSL preprocess-only pass to `shaderc`
@@ -127,7 +129,7 @@ Add the host-side container CLI (`tools/devops/`, `./scripts/container.sh` with 
 
 ## Issue 6 — Own issue tracking
 
-Status: review
+Status: done (#7)
 
 Track this repo's work in `issues.md` with its own issue numbers, title changelog entries by those issues, and remove references to other projects' issue IDs from the docs and the changelog.
 
@@ -135,7 +137,7 @@ Track this repo's work in `issues.md` with its own issue numbers, title changelo
 
 ## Issue 7 — Implement the Win32 surface creator
 
-Status: review
+Status: done (#8)
 
 Replace the `createWin32Surface` stub with `vkCreateWin32SurfaceKHR` through the `surfacePfn` / `surfaceResult` helpers the X11 and Wayland creators use. Ungate its tests in `06_surface_win32_android_test.zig` and add one that runs on any OS: an instance without `VK_KHR_win32_surface` returns `SurfaceCreationFailed` instead of crashing. Done when the `windows-latest` CI leg passes.
 
@@ -143,7 +145,7 @@ Replace the `createWin32Surface` stub with `vkCreateWin32SurfaceKHR` through the
 
 ## Issue 8 — Implement the swapchain helper
 
-Status: review
+Status: done (#9)
 
 Fill the `Swapchain` stubs (the v0.6.0 milestone in `docs/ROADMAP.md`): `create`, `deinit`, `recreate` on resize or `error.OutOfDateKHR` with the old swapchain handed over, `toRaw`, and `buildCreateInfo`, with the format, present mode, image count, and extent policy as pure `select*` functions. `recreate` takes the new extent for surfaces that let the swapchain choose (Wayland, headless), and a 0×0 surface is `SurfaceHasZeroExtent`. Test create, recreate, and acquire on a real surface from `VK_EXT_headless_surface`, so they run on lavapipe with no window. Done when `07_swapchain_test.zig` runs ungated and passes in the `test-tdd` CI leg.
 
@@ -151,6 +153,6 @@ Fill the `Swapchain` stubs (the v0.6.0 milestone in `docs/ROADMAP.md`): `create`
 
 ## Issue 9 — Document the surface format types
 
-Status: review
+Status: done (#11)
 
 `Swapchain.Options.preferred_format` takes vulkan-zig's types, and `docs/api.md` does not say what they are, so a reader may expect a format enum from this library. Document in `docs/api.md` that `vk.Format` and `vk.ColorSpaceKHR` are vulkan-zig's enums and that this library adds none: how the names map to Vulkan's, where the full list is, the common surface formats, and why a consumer reads the result from `Swapchain.format`. Documentation only. Done when the section names only values that exist in the pinned `vk.xml`.
