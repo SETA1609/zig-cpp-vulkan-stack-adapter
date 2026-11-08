@@ -1,10 +1,15 @@
 # Changelog
 
-Last updated: 2026-11-06T06:59Z
+Last updated: 2026-11-08T13:43Z
 
 Changes per issue, newest first. Issues are tracked in [issues.md](issues.md). Each PR adds its entry and updates the timestamp above. History before this file: `git log`.
 
 ## Unreleased
+
+### Issue 9 Document the surface format types
+
+- `docs/api.md` has a "Surface formats" section: `vk.Format` and `vk.ColorSpaceKHR` are vulkan-zig's generated enums and this library adds none. It covers how the names map to Vulkan's, where the full list is, the common formats and colour spaces, the extension the wider colour spaces need, and why a consumer reads the result from `Swapchain.format`.
+- Documentation only; no code changes.
 
 ### Issue 8 Implement the swapchain helper
 
