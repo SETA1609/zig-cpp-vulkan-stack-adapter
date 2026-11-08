@@ -88,9 +88,11 @@ resolution, and the ray-tracing + mesh stages. See
 
 The optional **`vk_stack.Swapchain`** helper (v0.6.0) — format / present-mode /
 extent defaults from the surface caps plus `recreate`, with `toRaw` /
-`buildCreateInfo` escape hatches back to raw `vk` — is **stubbed
-(`@panic`)** today; raw swapchain creation via `vkd.createSwapchainKHR` always
-works and is never blocked by it.
+`buildCreateInfo` escape hatches back to raw `vk` — is implemented (Issue 8);
+raw swapchain creation via `vkd.createSwapchainKHR` always works and is never
+blocked by it. After `error.OutOfDateKHR` or a resize, call
+`swapchain.recreate(..., new_extent)`; a minimized window gives
+`SurfaceHasZeroExtent` until it has a size again.
 
 Still `@panic("not implemented")` — **don't call yet**: the **Win32 / Android**
 surface creators (and there is no Metal surface yet — macOS is contributor-led).

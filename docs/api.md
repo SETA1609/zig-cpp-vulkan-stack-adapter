@@ -66,9 +66,20 @@ any boundary.
 - **Pro tier** — `buildCreateInfo` computes a good `vk.SwapchainCreateInfoKHR`
   from the same policy **without creating anything**, so a consumer drives Vulkan
   itself; `toRaw` exposes the underlying handle, images, views, and create-info.
+- **Policy** — the `select*` functions are the defaults as pure functions over what
+  the surface reports, so a consumer can reuse one rule and replace another.
+
+Implemented (Issue 8). `recreate` waits for the device to go idle before it
+destroys the old swapchain, and keeps the old one if building the new one fails.
+A 0×0 surface (a minimized window) is `SurfaceHasZeroExtent`: wait for a resize,
+then `recreate`. Tested on a real `VkSurfaceKHR` from `VK_EXT_headless_surface`
+(lavapipe), so create, recreate, and acquire run in CI without a window.
 
 ```zig
-pub const Error = error{ OutOfHostMemory, OutOfDeviceMemory, DeviceLost, SurfaceLost, OutOfMemory, SwapchainCreationFailed };
+pub const Error = error{ OutOfHostMemory, OutOfDeviceMemory, DeviceLost, SurfaceLost, OutOfMemory, SwapchainCreationFailed, SurfaceHasZeroExtent };
+
+// currentExtent of a surface that lets the swapchain pick the size (Wayland, headless).
+pub const extent_chosen_by_swapchain = std.math.maxInt(u32); // root: vk_stack.swapchain_extent_chosen_by_swapchain
 
 pub const Swapchain = struct {
     handle: vk.SwapchainKHR,
@@ -77,6 +88,8 @@ pub const Swapchain = struct {
     extent: vk.Extent2D,
     images: []vk.Image,
     views: []vk.ImageView,
+    options: Options,                       // what it was created with; recreate reuses them
+    create_info: vk.SwapchainCreateInfoKHR, // of the current swapchain
 
     // Consumer preferences — every field is a *wish*, clamped against surface caps.
     pub const Options = struct {
@@ -84,6 +97,7 @@ pub const Swapchain = struct {
         preferred_present_mode: vk.PresentModeKHR = .mailbox_khr, // falls back to .fifo_khr
         desired_image_count: u32 = 0,                             // 0 → minImageCount + 1 (clamped)
         fallback_extent: vk.Extent2D = .{ .width = 800, .height = 600 }, // used when currentExtent == 0xFFFF_FFFF
+        image_usage: vk.ImageUsageFlags = .{ .color_attachment = true, .transfer_dst = true }, // ∩ supported; color attachment required
     };
 
     // The raw objects behind the abstraction — escape hatch for driving Vulkan directly.
@@ -99,11 +113,21 @@ pub const Swapchain = struct {
     // Destroy the image views and the swapchain, freeing the owned slices.
     pub fn deinit(self: *Swapchain, gpa: std.mem.Allocator, vkd: vk.DeviceWrapper, device: vk.Device) void;
     // Recreate after a resize / error.OutOfDateKHR, reusing the old swapchain as oldSwapchain.
-    pub fn recreate(self: *Swapchain, gpa: std.mem.Allocator, vki: vk.InstanceWrapper, vkd: vk.DeviceWrapper, physical: vk.PhysicalDevice, device: vk.Device, surface: vk.SurfaceKHR) Error!void;
+    // fallback_extent: the new size where the surface lets the swapchain choose (Wayland, headless).
+    // Waits for device idle; on error the old swapchain is kept.
+    pub fn recreate(self: *Swapchain, gpa: std.mem.Allocator, vki: vk.InstanceWrapper, vkd: vk.DeviceWrapper, physical: vk.PhysicalDevice, device: vk.Device, surface: vk.SurfaceKHR, fallback_extent: vk.Extent2D) Error!void;
     // Bridge: the raw handle, images, views, and the exact create-info used.
     pub fn toRaw(self: Swapchain) Raw;
     // Pro tier: compute a vk.SwapchainCreateInfoKHR from the same policy, creating nothing.
     pub fn buildCreateInfo(vki: vk.InstanceWrapper, physical: vk.PhysicalDevice, surface: vk.SurfaceKHR, options: Options) Error!vk.SwapchainCreateInfoKHR;
+
+    // Policy, pure: preferred format else the first listed; preferred present mode else FIFO;
+    // desired (0 → min + 1) clamped into [min, max] (max 0 = no limit); currentExtent, else the
+    // fallback clamped to the surface's limits, 0×0 → SurfaceHasZeroExtent.
+    pub fn selectSurfaceFormat(available: []const vk.SurfaceFormatKHR, preferred: vk.SurfaceFormatKHR) vk.SurfaceFormatKHR;
+    pub fn selectPresentMode(available: []const vk.PresentModeKHR, preferred: vk.PresentModeKHR) vk.PresentModeKHR;
+    pub fn selectImageCount(capabilities: vk.SurfaceCapabilitiesKHR, desired: u32) u32;
+    pub fn selectExtent(capabilities: vk.SurfaceCapabilitiesKHR, fallback: vk.Extent2D) Error!vk.Extent2D;
 };
 ```
 

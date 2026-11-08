@@ -1,10 +1,18 @@
 # Changelog
 
-Last updated: 2026-11-06T00:26Z
+Last updated: 2026-11-06T06:59Z
 
 Changes per issue, newest first. Issues are tracked in [issues.md](issues.md). Each PR adds its entry and updates the timestamp above. History before this file: `git log`.
 
 ## Unreleased
+
+### Issue 8 Implement the swapchain helper
+
+- `Swapchain` is implemented (v0.6.0 .1 to .4): `create`, `deinit`, `recreate` (old swapchain handed over as `oldSwapchain`, device idle before it is destroyed, old one kept on failure), `toRaw`, and `buildCreateInfo`.
+- The policy is public as pure functions: `selectSurfaceFormat` (preferred, else the first listed), `selectPresentMode` (preferred, else FIFO), `selectImageCount` (0 → min + 1, clamped; max 0 = no limit), and `selectExtent` (current extent, else the fallback clamped to the surface's limits).
+- API changes before the first implementation: `recreate` takes `fallback_extent`, the new size for surfaces that let the swapchain choose (Wayland, headless); `Swapchain` keeps `options` and `create_info`; `Options.image_usage` (color attachment and transfer dst, intersected with what the surface supports); `Error.SurfaceHasZeroExtent` for a minimized window; `swapchain_extent_chosen_by_swapchain`.
+- `07_swapchain_test.zig` is ungated. The new `HeadlessSurfaceContext` in the test harness makes a real surface with `VK_EXT_headless_surface`, so create, recreate, and acquire run on lavapipe without a window; it skips on a driver without the extension.
+- Checked in a Zig 0.17.0 container with lavapipe: `zig build test` 8/8; `zig build test-tdd` 51 passed, 26 skipped, none failed, and the Khronos validation layer reports nothing; `zig fmt --check`, `zig build`, and the smoke demo pass; the TDD binary compiles for `x86_64-windows-gnu`.
 
 ### Issue 7 Implement the Win32 surface creator
 

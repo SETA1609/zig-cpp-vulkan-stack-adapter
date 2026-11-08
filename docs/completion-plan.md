@@ -16,10 +16,10 @@
 task/mesh stages).
 
 🚧 **One surface function still `@panic`s**: `createAndroidSurface`
-(`createWin32Surface` is real since Issue 7). The **v0.6.0 `Swapchain` abstraction** is scaffolded —
-`Swapchain` + `Options` / `Raw` / `Error` and the methods
-`create` / `deinit` / `recreate` / `toRaw` / `buildCreateInfo` exist with their
-final signatures, but every body still `@panic`s.
+(`createWin32Surface` is real since Issue 7). The **v0.6.0 `Swapchain` abstraction** is
+implemented since Issue 8: `create` / `deinit` / `recreate` / `toRaw` / `buildCreateInfo`
+and the `select*` policy, tested on a headless surface; the raw-only tree-shake check is
+still open.
 
 ## Phase V1 — finish per-OS surfaces (closes v0.5.0)
 
@@ -39,16 +39,17 @@ Size: **S** · CI: build-only on Linux (cross-compile), behavior on real devices
 Size: **M** · e2e on a real device (the create path needs a surface + device);
 the policy + bridge are unit-checkable in-process.
 
-- [ ] `Swapchain.Options` + the default policy — pick format / present mode /
+- [x] `Swapchain.Options` + the default policy — pick format / present mode /
       image count / extent from the surface caps, clamping every wish.
-- [ ] `Swapchain.create` / `deinit` — make the `VkSwapchainKHR` + one image view
+- [x] `Swapchain.create` / `deinit` — make the `VkSwapchainKHR` + one image view
       per image; release the owned slices.
-- [ ] `Swapchain.recreate` — on resize / `error.OutOfDateKHR`, reusing the old
+- [x] `Swapchain.recreate` — on resize / `error.OutOfDateKHR`, reusing the old
       swapchain as `oldSwapchain` for a gapless handoff.
-- [ ] `toRaw()` + `buildCreateInfo()` bridge — hand back the raw handle / images /
+- [x] `toRaw()` + `buildCreateInfo()` bridge — hand back the raw handle / images /
       views / create-info; compute a `vk.SwapchainCreateInfoKHR` creating nothing.
 - [ ] TDD session `07_swapchain_test.zig` (options/policy + `toRaw`/`buildCreateInfo`
-      contract) + the **raw-only tree-shake** check (raw `vk` swapchain with this
+      contract, and create / recreate / acquire on a `VK_EXT_headless_surface` surface:
+      done in Issue 8) + the **raw-only tree-shake** check (raw `vk` swapchain with this
       module unreferenced) + the headless `nm` decoupling gate stays green.
 
 ## Phase V2 — macOS / Metal (in scope, contributor-led)
